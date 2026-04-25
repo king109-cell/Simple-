@@ -41,7 +41,6 @@ function build(template, lead) {
 
 // SEND EMAIL
 async function sendEmail(inbox, lead, subject, template) {
-
   const transporter = nodemailer.createTransport({
     host: "smtp.office365.com",
     port: 587,
@@ -64,7 +63,6 @@ async function sendEmail(inbox, lead, subject, template) {
 
 // RETRY
 async function sendWithRetry(inbox, lead, subject, template) {
-
   let tries = 0;
 
   while (tries < 3) {
@@ -75,7 +73,6 @@ async function sendWithRetry(inbox, lead, subject, template) {
       tries++;
     }
   }
-
   return false;
 }
 
@@ -84,9 +81,8 @@ function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// ADD INBOX
+// ADD INBOX (WITH ERROR MESSAGE)
 app.post("/add-inbox", async (req, res) => {
-
   const { email, password } = req.body;
 
   const transporter = nodemailer.createTransport({
@@ -105,10 +101,13 @@ app.post("/add-inbox", async (req, res) => {
       sentToday: 0
     });
 
-    res.send("OK");
+    res.json({ success: true });
 
-  } catch {
-    res.send("FAIL");
+  } catch (e) {
+    res.json({
+      success: false,
+      error: e.message
+    });
   }
 });
 
