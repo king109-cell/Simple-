@@ -13,7 +13,7 @@
   <!-- UPLOAD LEADS -->
   <h3>Upload Leads CSV</h3>
   <input type="file" id="file">
-  <button onclick="upload()">Upload</button>
+  <button onclick="upload()">Upload Leads</button>
 
   <hr>
 
@@ -22,6 +22,12 @@
   <input id="email" placeholder="Email"><br><br>
   <input id="pass" placeholder="Password"><br><br>
   <button onclick="addInbox()">Add Inbox</button>
+
+  <hr>
+
+  <!-- SUBJECT -->
+  <h3>Email Subject</h3>
+  <input id="subject" placeholder="Enter subject" style="width:300px;height:30px;">
 
   <hr>
 
@@ -82,12 +88,13 @@ async function run() {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
+      subject: document.getElementById("subject").value,
       template: document.getElementById("template").value,
       batch: Number(document.getElementById("batch").value)
     })
   });
 
-  alert("Running campaign");
+  alert("Campaign started");
 }
 
 function download() {
