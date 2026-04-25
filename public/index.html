@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cold Email Tool</title>
+</head>
+
+<body style="font-family: Arial; padding: 20px;">
+
+  <h2>Cold Email Tool</h2>
+
+  <hr>
+
+  <!-- UPLOAD LEADS -->
+  <h3>Upload Leads CSV</h3>
+  <input type="file" id="file">
+  <button onclick="upload()">Upload</button>
+
+  <hr>
+
+  <!-- ADD INBOX -->
+  <h3>Add Inbox</h3>
+  <input id="email" placeholder="Email"><br><br>
+  <input id="pass" placeholder="Password"><br><br>
+  <button onclick="addInbox()">Add Inbox</button>
+
+  <hr>
+
+  <!-- TEMPLATE -->
+  <h3>Email Template</h3>
+  <textarea id="template" rows="6" cols="50">
+Hi {{name}},
+
+{{icebreaker}}
+
+Quick question for you.
+  </textarea>
+
+  <hr>
+
+  <!-- RUN -->
+  <h3>Run Campaign</h3>
+  Batch size:
+  <input id="batch" value="10"><br><br>
+
+  <button onclick="run()">RUN</button>
+
+  <hr>
+
+  <!-- DOWNLOAD -->
+  <button onclick="download()">Download Failed Emails</button>
+
+<script>
+
+async function upload() {
+  let file = document.getElementById("file").files[0];
+  let form = new FormData();
+  form.append("file", file);
+
+  await fetch("/upload-leads", {
+    method: "POST",
+    body: form
+  });
+
+  alert("Leads uploaded");
+}
+
+async function addInbox() {
+  await fetch("/add-inbox", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      email: document.getElementById("email").value,
+      password: document.getElementById("pass").value
+    })
+  });
+
+  alert("Inbox added");
+}
+
+async function run() {
+  await fetch("/run", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      template: document.getElementById("template").value,
+      batch: Number(document.getElementById("batch").value)
+    })
+  });
+
+  alert("Running campaign");
+}
+
+function download() {
+  window.open("/download-failed");
+}
+
+</script>
+
+</body>
+</html>
