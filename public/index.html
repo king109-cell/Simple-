@@ -1,128 +1,110 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Cold Email Tool</title>
-</head>
-
 <body style="font-family: Arial; padding: 20px;">
 
-  <h2>Cold Email Tool</h2>
+<h2>Cold Email Tool</h2>
 
-  <hr>
+<h3>Upload Leads</h3>
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
 
-  <h3>Upload Leads CSV</h3>
-  <input type="file" id="file">
-  <button onclick="upload()">Upload Leads</button>
+<h3>Add Inbox</h3>
+<input id="email" placeholder="Email"><br><br>
+<input id="pass" placeholder="App Password"><br><br>
+<button onclick="addInbox()">Add Inbox</button>
 
-  <hr>
+<ul id="inboxList"></ul>
 
-  <h3>Add Inbox</h3>
-  <input id="email" placeholder="Email"><br><br>
-  <input id="pass" placeholder="App Password"><br><br>
-  <button onclick="addInbox()">Add Inbox</button>
+<h3>Subject</h3>
+<input id="subject">
 
-  <h4>Inbox List:</h4>
-  <ul id="inboxList"></ul>
+<h3>Template</h3>
+<textarea id="template"></textarea>
 
-  <hr>
+<h3>Batch</h3>
+<input id="batch" value="10">
 
-  <h3>Email Subject</h3>
-  <input id="subject" placeholder="Enter subject">
+<br><br>
+<button onclick="run()">RUN</button>
 
-  <hr>
+<h3>Status:</h3>
+<div id="status">Idle</div>
 
-  <h3>Email Template</h3>
-  <textarea id="template" rows="6" cols="50">
-Hi {{name}},
+<h3>Progress:</h3>
+<div id="progress">0 / 0</div>
 
-{{icebreaker}}
+<h3>Failed Emails:</h3>
+<ul id="failedList"></ul>
 
-Quick question for you.
-  </textarea>
-
-  <hr>
-
-  <h3>Run Campaign</h3>
-  Batch size:
-  <input id="batch" value="10"><br><br>
-
-  <button onclick="run()">RUN</button>
-
-  <hr>
-
-  <button onclick="download()">Download Failed Emails</button>
+<button onclick="download()">Download Failed</button>
 
 <script>
 
-let inboxes = [];
 let isRunning = false;
 
-async function upload() {
-  let file = document.getElementById("file").files[0];
+async function upload(){
+  let f = document.getElementById("file").files[0];
   let form = new FormData();
-  form.append("file", file);
-
-  await fetch("/upload-leads", {
-    method: "POST",
-    body: form
-  });
-
-  alert("Leads uploaded");
+  form.append("file", f);
+  await fetch("/upload-leads",{method:"POST",body:form});
 }
 
 async function addInbox(){
-
-  let email = document.getElementById("email").value;
-  let pass = document.getElementById("pass").value;
-
-  let res = await fetch("/add-inbox", {
+  let res = await fetch("/add-inbox",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ email, password: pass })
+    body:JSON.stringify({
+      email: email.value,
+      password: pass.value
+    })
   });
 
   let text = await res.text();
 
-  if(text === "OK"){
-    inboxes.push(email);
-
-    let li = document.createElement("li");
-    li.innerText = email;
-    document.getElementById("inboxList").appendChild(li);
-
-    alert("Inbox added ✅");
-  } else {
-    alert("Inbox failed ❌");
-  }
+  if(text==="OK"){
+    let li=document.createElement("li");
+    li.innerText=email.value;
+    inboxList.appendChild(li);
+  } else alert("failed");
 }
 
 async function run(){
+  if(isRunning) return alert("Already running");
+  isRunning=true;
 
-  if(isRunning){
-    alert("Already running ⚠️");
-    return;
-  }
-
-  isRunning = true;
-  alert("Campaign started 🚀");
-
-  await fetch("/run", {
+  await fetch("/run",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      subject: document.getElementById("subject").value,
-      template: document.getElementById("template").value,
-      batch: Number(document.getElementById("batch").value)
+    body:JSON.stringify({
+      subject:subject.value,
+      template:template.value,
+      batch:Number(batch.value)
     })
   });
 
-  alert("Campaign finished ✅");
-  isRunning = false;
+  isRunning=false;
 }
 
 function download(){
   window.open("/download-failed");
 }
+
+// LIVE STATUS
+setInterval(async ()=>{
+  let res=await fetch("/status");
+  let data=await res.json();
+
+  status.innerText = data.running ? "Running" : "Stopped";
+  progress.innerText = data.sent + " / " + data.total;
+
+  failedList.innerHTML="";
+  data.failed.forEach(f=>{
+    let li=document.createElement("li");
+    li.innerText=f.email;
+    failedList.appendChild(li);
+  });
+
+},3000);
 
 </script>
 
