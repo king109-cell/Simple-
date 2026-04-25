@@ -50,6 +50,7 @@ async function upload(){
 }
 
 async function addInbox(){
+
   let res = await fetch("/add-inbox",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -59,17 +60,21 @@ async function addInbox(){
     })
   });
 
-  let text = await res.text();
+  let data = await res.json();
 
-  if(text==="OK"){
+  if(data.success){
     let li=document.createElement("li");
     li.innerText=email.value;
     inboxList.appendChild(li);
-  } else alert("failed");
+    alert("Inbox added ✅");
+  } else {
+    alert("Failed ❌: " + data.error);
+  }
 }
 
 async function run(){
   if(isRunning) return alert("Already running");
+
   isRunning=true;
 
   await fetch("/run",{
