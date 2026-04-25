@@ -14,7 +14,7 @@ const MAX_PER_INBOX = 30;
 
 let leads = [];
 let inboxes = [];
-let state = JSON.parse(fs.readFileSync("state.json"));
+let state = { index: 0 };
 let failed = [];
 
 // LOAD LEADS
@@ -37,7 +37,7 @@ function getInbox() {
     .sort((a, b) => a.sentToday - b.sentToday)[0];
 }
 
-// EMAIL BODY
+// BUILD EMAIL
 function build(template, lead) {
   return template
     .replaceAll("{{name}}", lead.name)
@@ -67,7 +67,7 @@ async function sendEmail(inbox, lead, subject, template) {
   inbox.sentToday++;
 }
 
-// RETRY LOGIC
+// RETRY
 async function sendWithRetry(inbox, lead, subject, template) {
 
   let tries = 0;
@@ -89,15 +89,32 @@ function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// ADD INBOX
-app.post("/add-inbox", (req, res) => {
-  inboxes.push({
-    email: req.body.email,
-    password: req.body.password,
-    sentToday: 0
+// ADD INBOX + CHECK
+app.post("/add-inbox", async (req, res) => {
+
+  const { email, password } = req.body;
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.office365.com",
+    port: 587,
+    secure: false,
+    auth: { user: email, pass: password }
   });
 
-  res.send("Inbox added");
+  try {
+    await transporter.verify();
+
+    inboxes.push({
+      email,
+      password,
+      sentToday: 0
+    });
+
+    res.send("OK");
+
+  } catch (e) {
+    res.send("FAIL");
+  }
 });
 
 // UPLOAD LEADS
