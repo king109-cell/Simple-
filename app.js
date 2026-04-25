@@ -10,12 +10,20 @@ const upload = multer({ dest: "uploads/" });
 app.use(express.json());
 app.use(express.static("public"));
 
+const TOOL_PASSWORD = "dwarkadhish_vivek"; // change this
 const MAX_PER_INBOX = 30;
 
 let leads = [];
 let inboxes = [];
 let state = { index: 0, sent: 0, running: false };
 let failed = [];
+
+// LOGIN
+app.post("/login", (req, res) => {
+  const { password } = req.body;
+  if (password === TOOL_PASSWORD) res.json({ success: true });
+  else res.json({ success: false });
+});
 
 // LOAD LEADS
 function loadLeads(path) {
@@ -25,6 +33,14 @@ function loadLeads(path) {
     .on("data", (row) => leads.push(row));
 }
 
+// CLEAR LEADS (NEW)
+app.post("/clear-leads", (req, res) => {
+  leads = [];
+  state = { index: 0, sent: 0, running: false };
+  failed = [];
+  res.send("Leads cleared");
+});
+
 // GET INBOX
 function getInbox() {
   return inboxes
@@ -32,7 +48,7 @@ function getInbox() {
     .sort((a, b) => a.sentToday - b.sentToday)[0];
 }
 
-// BUILD EMAIL (FIXED UNDEFINED)
+// BUILD EMAIL
 function build(template, lead) {
   return template
     .replaceAll("{{name}}", lead.name || "")
@@ -64,7 +80,6 @@ async function sendEmail(inbox, lead, subject, template) {
 // RETRY
 async function sendWithRetry(inbox, lead, subject, template) {
   let tries = 0;
-
   while (tries < 3) {
     try {
       await sendEmail(inbox, lead, subject, template);
@@ -104,10 +119,7 @@ app.post("/add-inbox", async (req, res) => {
     res.json({ success: true });
 
   } catch (e) {
-    res.json({
-      success: false,
-      error: e.message
-    });
+    res.json({ success: false, error: e.message });
   }
 });
 
@@ -134,7 +146,6 @@ app.post("/run", async (req, res) => {
     state.sent < batch &&
     state.running
   ) {
-
     const inbox = getInbox();
     if (!inbox) break;
 
