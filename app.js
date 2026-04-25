@@ -25,23 +25,22 @@ function loadLeads(path) {
     .on("data", (row) => leads.push(row));
 }
 
-// GET INBOX (rotation)
+// GET INBOX
 function getInbox() {
   return inboxes
     .filter(i => i.sentToday < MAX_PER_INBOX)
     .sort((a, b) => a.sentToday - b.sentToday)[0];
 }
 
-// BUILD EMAIL
+// BUILD EMAIL (FIXED UNDEFINED)
 function build(template, lead) {
   return template
-    .replaceAll("{{name}}", lead.name)
-    .replaceAll("{{icebreaker}}", lead.icebreaker);
+    .replaceAll("{{name}}", lead.name || "")
+    .replaceAll("{{icebreaker}}", lead.icebreaker || "");
 }
 
 // SEND EMAIL (GMAIL)
 async function sendEmail(inbox, lead, subject, template) {
-
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -62,7 +61,7 @@ async function sendEmail(inbox, lead, subject, template) {
   inbox.sentToday++;
 }
 
-// RETRY (3 times)
+// RETRY
 async function sendWithRetry(inbox, lead, subject, template) {
   let tries = 0;
 
@@ -70,7 +69,7 @@ async function sendWithRetry(inbox, lead, subject, template) {
     try {
       await sendEmail(inbox, lead, subject, template);
       return true;
-    } catch (e) {
+    } catch {
       tries++;
     }
   }
@@ -82,7 +81,7 @@ function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// ADD INBOX (WITH ERROR)
+// ADD INBOX
 app.post("/add-inbox", async (req, res) => {
   const { email, password } = req.body;
 
@@ -121,7 +120,7 @@ app.post("/upload-leads", upload.single("file"), (req, res) => {
   res.send("Leads loaded");
 });
 
-// RUN CAMPAIGN
+// RUN
 app.post("/run", async (req, res) => {
 
   if (state.running) return res.send("Already running");
@@ -130,7 +129,11 @@ app.post("/run", async (req, res) => {
 
   const { subject, template, batch } = req.body;
 
-  while (state.index < leads.length && state.sent < batch) {
+  while (
+    state.index < leads.length &&
+    state.sent < batch &&
+    state.running
+  ) {
 
     const inbox = getInbox();
     if (!inbox) break;
@@ -156,6 +159,12 @@ app.post("/run", async (req, res) => {
 
   state.running = false;
   res.send("Done");
+});
+
+// STOP
+app.post("/stop", (req, res) => {
+  state.running = false;
+  res.send("Stopped");
 });
 
 // STATUS
