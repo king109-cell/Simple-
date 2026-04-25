@@ -10,28 +10,27 @@
 
   <hr>
 
-  <!-- UPLOAD LEADS -->
   <h3>Upload Leads CSV</h3>
   <input type="file" id="file">
   <button onclick="upload()">Upload Leads</button>
 
   <hr>
 
-  <!-- ADD INBOX -->
   <h3>Add Inbox</h3>
   <input id="email" placeholder="Email"><br><br>
-  <input id="pass" placeholder="Password"><br><br>
+  <input id="pass" placeholder="App Password"><br><br>
   <button onclick="addInbox()">Add Inbox</button>
 
+  <h4>Inbox List:</h4>
+  <ul id="inboxList"></ul>
+
   <hr>
 
-  <!-- SUBJECT -->
   <h3>Email Subject</h3>
-  <input id="subject" placeholder="Enter subject" style="width:300px;height:30px;">
+  <input id="subject" placeholder="Enter subject">
 
   <hr>
 
-  <!-- TEMPLATE -->
   <h3>Email Template</h3>
   <textarea id="template" rows="6" cols="50">
 Hi {{name}},
@@ -43,7 +42,6 @@ Quick question for you.
 
   <hr>
 
-  <!-- RUN -->
   <h3>Run Campaign</h3>
   Batch size:
   <input id="batch" value="10"><br><br>
@@ -52,10 +50,12 @@ Quick question for you.
 
   <hr>
 
-  <!-- DOWNLOAD -->
   <button onclick="download()">Download Failed Emails</button>
 
 <script>
+
+let inboxes = [];
+let isRunning = false;
 
 async function upload() {
   let file = document.getElementById("file").files[0];
@@ -70,23 +70,45 @@ async function upload() {
   alert("Leads uploaded");
 }
 
-async function addInbox() {
-  await fetch("/add-inbox", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: document.getElementById("email").value,
-      password: document.getElementById("pass").value
-    })
+async function addInbox(){
+
+  let email = document.getElementById("email").value;
+  let pass = document.getElementById("pass").value;
+
+  let res = await fetch("/add-inbox", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ email, password: pass })
   });
 
-  alert("Inbox added");
+  let text = await res.text();
+
+  if(text === "OK"){
+    inboxes.push(email);
+
+    let li = document.createElement("li");
+    li.innerText = email;
+    document.getElementById("inboxList").appendChild(li);
+
+    alert("Inbox added ✅");
+  } else {
+    alert("Inbox failed ❌");
+  }
 }
 
-async function run() {
+async function run(){
+
+  if(isRunning){
+    alert("Already running ⚠️");
+    return;
+  }
+
+  isRunning = true;
+  alert("Campaign started 🚀");
+
   await fetch("/run", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       subject: document.getElementById("subject").value,
       template: document.getElementById("template").value,
@@ -94,10 +116,11 @@ async function run() {
     })
   });
 
-  alert("Campaign started");
+  alert("Campaign finished ✅");
+  isRunning = false;
 }
 
-function download() {
+function download(){
   window.open("/download-failed");
 }
 
