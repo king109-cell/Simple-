@@ -25,7 +25,7 @@ function loadLeads(path) {
     .on("data", (row) => leads.push(row));
 }
 
-// GET INBOX
+// GET INBOX (rotation)
 function getInbox() {
   return inboxes
     .filter(i => i.sentToday < MAX_PER_INBOX)
@@ -39,10 +39,11 @@ function build(template, lead) {
     .replaceAll("{{icebreaker}}", lead.icebreaker);
 }
 
-// SEND EMAIL
+// SEND EMAIL (GMAIL)
 async function sendEmail(inbox, lead, subject, template) {
+
   const transporter = nodemailer.createTransport({
-    host: "smtp.office365.com",
+    host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
@@ -61,7 +62,7 @@ async function sendEmail(inbox, lead, subject, template) {
   inbox.sentToday++;
 }
 
-// RETRY
+// RETRY (3 times)
 async function sendWithRetry(inbox, lead, subject, template) {
   let tries = 0;
 
@@ -69,7 +70,7 @@ async function sendWithRetry(inbox, lead, subject, template) {
     try {
       await sendEmail(inbox, lead, subject, template);
       return true;
-    } catch {
+    } catch (e) {
       tries++;
     }
   }
@@ -81,12 +82,12 @@ function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// ADD INBOX (WITH ERROR MESSAGE)
+// ADD INBOX (WITH ERROR)
 app.post("/add-inbox", async (req, res) => {
   const { email, password } = req.body;
 
   const transporter = nodemailer.createTransport({
-    host: "smtp.office365.com",
+    host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: { user: email, pass: password }
@@ -120,7 +121,7 @@ app.post("/upload-leads", upload.single("file"), (req, res) => {
   res.send("Leads loaded");
 });
 
-// RUN
+// RUN CAMPAIGN
 app.post("/run", async (req, res) => {
 
   if (state.running) return res.send("Already running");
@@ -157,7 +158,7 @@ app.post("/run", async (req, res) => {
   res.send("Done");
 });
 
-// STATUS API
+// STATUS
 app.get("/status", (req, res) => {
   res.json({
     sent: state.sent,
