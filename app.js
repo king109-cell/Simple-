@@ -14,7 +14,7 @@ const MAX_PER_INBOX = 30;
 
 let leads = [];
 let inboxes = [];
-let state = { index: 0 };
+let state = { index: 0, sent: 0, running: false };
 let failed = [];
 
 // LOAD LEADS
@@ -23,11 +23,6 @@ function loadLeads(path) {
   fs.createReadStream(path)
     .pipe(csv())
     .on("data", (row) => leads.push(row));
-}
-
-// SAVE STATE
-function saveState() {
-  fs.writeFileSync("state.json", JSON.stringify(state));
 }
 
 // GET INBOX
@@ -76,7 +71,7 @@ async function sendWithRetry(inbox, lead, subject, template) {
     try {
       await sendEmail(inbox, lead, subject, template);
       return true;
-    } catch (e) {
+    } catch {
       tries++;
     }
   }
@@ -89,7 +84,7 @@ function sleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// ADD INBOX + CHECK
+// ADD INBOX
 app.post("/add-inbox", async (req, res) => {
 
   const { email, password } = req.body;
@@ -112,7 +107,7 @@ app.post("/add-inbox", async (req, res) => {
 
     res.send("OK");
 
-  } catch (e) {
+  } catch {
     res.send("FAIL");
   }
 });
@@ -120,16 +115,22 @@ app.post("/add-inbox", async (req, res) => {
 // UPLOAD LEADS
 app.post("/upload-leads", upload.single("file"), (req, res) => {
   loadLeads(req.file.path);
+  state.index = 0;
+  state.sent = 0;
+  failed = [];
   res.send("Leads loaded");
 });
 
-// RUN CAMPAIGN
+// RUN
 app.post("/run", async (req, res) => {
 
-  const { subject, template, batch } = req.body;
-  let sent = 0;
+  if (state.running) return res.send("Already running");
 
-  while (state.index < leads.length && sent < batch) {
+  state.running = true;
+
+  const { subject, template, batch } = req.body;
+
+  while (state.index < leads.length && state.sent < batch) {
 
     const inbox = getInbox();
     if (!inbox) break;
@@ -140,7 +141,6 @@ app.post("/run", async (req, res) => {
 
     if (!ok) {
       failed.push(lead);
-
       fs.writeFileSync(
         "failed.csv",
         "name,email\n" +
@@ -149,13 +149,23 @@ app.post("/run", async (req, res) => {
     }
 
     state.index++;
-    sent++;
+    state.sent++;
 
     await sleep(30000 + Math.random() * 60000);
-    saveState();
   }
 
-  res.send(`Sent: ${sent}`);
+  state.running = false;
+  res.send("Done");
+});
+
+// STATUS API
+app.get("/status", (req, res) => {
+  res.json({
+    sent: state.sent,
+    total: leads.length,
+    running: state.running,
+    failed
+  });
 });
 
 // DOWNLOAD FAILED
