@@ -10,7 +10,7 @@ const upload = multer({ dest: "uploads/" });
 app.use(express.json());
 app.use(express.static("public"));
 
-const TOOL_PASSWORD = "mysecret123";
+const TOOL_PASSWORD = "dwarkadhish_vivek";
 const MAX_PER_INBOX = 30;
 
 let leads = [];
