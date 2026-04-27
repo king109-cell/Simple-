@@ -10,30 +10,27 @@ const upload = multer({ dest: "uploads/" });
 app.use(express.json());
 app.use(express.static("public"));
 
-const TOOL_PASSWORD = "dwarkadhish@vivek"; // change this
+const TOOL_PASSWORD = "dwarkadhishxvivek"; // change this
 const MAX_PER_INBOX = 30;
 
 let leads = [];
 let inboxes = [];
-let state = { index: 0, sent: 0, running: false };
+let state = { sent: 0, running: false };
 let failed = [];
 
 // LOAD
 if (fs.existsSync("leads.json")) leads = JSON.parse(fs.readFileSync("leads.json"));
 if (fs.existsSync("inboxes.json")) inboxes = JSON.parse(fs.readFileSync("inboxes.json"));
-if (fs.existsSync("state.json")) state = JSON.parse(fs.readFileSync("state.json"));
 
 // SAVE
 function save() {
   fs.writeFileSync("leads.json", JSON.stringify(leads));
   fs.writeFileSync("inboxes.json", JSON.stringify(inboxes));
-  fs.writeFileSync("state.json", JSON.stringify(state));
 }
 
-// 🔥 DAILY RESET FUNCTION
+// DAILY RESET
 function resetIfNewDay(inbox) {
   const today = new Date().toDateString();
-
   if (inbox.lastReset !== today) {
     inbox.sentToday = 0;
     inbox.lastReset = today;
@@ -67,7 +64,6 @@ app.post("/add-inbox", async (req, res) => {
     });
 
     save();
-
     res.json({ success: true });
 
   } catch (e) {
@@ -97,7 +93,6 @@ app.post("/upload-leads", upload.single("file"), (req, res) => {
     .pipe(csv())
     .on("data", row => leads.push(row))
     .on("end", () => {
-      state.index = 0;
       state.sent = 0;
       failed = [];
       save();
@@ -108,7 +103,7 @@ app.post("/upload-leads", upload.single("file"), (req, res) => {
 // CLEAR LEADS
 app.post("/clear-leads", (req, res) => {
   leads = [];
-  state = { index: 0, sent: 0, running: false };
+  state.sent = 0;
   failed = [];
   save();
   res.send("ok");
@@ -128,9 +123,8 @@ function build(template, lead) {
     .replaceAll("{{icebreaker}}", lead.icebreaker || "");
 }
 
-// GET INBOX (WITH DAILY RESET)
+// GET INBOX
 function getInbox() {
-
   inboxes.forEach(i => resetIfNewDay(i));
   save();
 
@@ -172,20 +166,27 @@ async function sendWithRetry(inbox, lead, subject, template) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// SENDER
+// 🔥 NEW SENDER LOGIC
 async function start() {
-  while (state.running && state.index < leads.length && state.sent < state.batch) {
+
+  state.sent = 0;
+
+  while (state.running && leads.length > 0 && state.sent < state.batch) {
 
     const inbox = getInbox();
     if (!inbox) break;
 
-    const lead = leads[state.index];
+    const lead = leads[0];
 
     const ok = await sendWithRetry(inbox, lead, state.subject, state.template);
 
-    if (!ok) failed.push(lead);
+    if (!ok) {
+      failed.push(lead);
+    }
 
-    state.index++;
+    // 🔥 REMOVE AFTER SEND
+    leads.shift();
+
     state.sent++;
     save();
 
@@ -193,7 +194,6 @@ async function start() {
   }
 
   state.running = false;
-  save();
 }
 
 // RUN
@@ -201,20 +201,18 @@ app.post("/run", (req, res) => {
   if (state.running) return res.send("running");
 
   state.running = true;
+  state.sent = 0;
   state.subject = req.body.subject;
   state.template = req.body.template;
   state.batch = req.body.batch;
 
-  save();
   start();
-
   res.send("started");
 });
 
 // STOP
 app.post("/stop", (req, res) => {
   state.running = false;
-  save();
   res.send("stopped");
 });
 
@@ -228,8 +226,5 @@ app.get("/status", (req, res) => {
     leads
   });
 });
-
-// AUTO RESUME
-if (state.running) start();
 
 app.listen(process.env.PORT || 3000);
