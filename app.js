@@ -10,7 +10,7 @@ const app = express();
 const PORT = 3000;
 
 // ─── Config ────────────────────────────────────────────────────────────────
-const PASSWORD = process.env.APP_PASSWORD || "coldmail2024";
+const PASSWORD = process.env.APP_PASSWORD || "dwarkadhishxvivek";
 const LEADS_FILE = path.join(__dirname, "leads.json");
 const INBOXES_FILE = path.join(__dirname, "inboxes.json");
 const MAX_DAILY_SEND = 30;
