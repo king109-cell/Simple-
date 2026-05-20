@@ -50,28 +50,29 @@ let loggedIn=false;
 async function login(){
   let r=await fetch("/login",{method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({password:loginPass.value})
+    body:JSON.stringify({password:document.getElementById("loginPass").value})
   });
   let d=await r.json();
   if(d.success){
-    loginBox.style.display="none";
-    app.style.display="block";
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("app").style.display="block";
     loggedIn=true;
-    template.value=localStorage.getItem("t")||"";
+    document.getElementById("template").value=localStorage.getItem("t")||"";
   }
 }
 
-template.oninput=()=>localStorage.setItem("t",template.value);
+document.getElementById("template").oninput=()=>localStorage.setItem("t",document.getElementById("template").value);
 
 function clearTemplate(){
-  template.value="";
+  document.getElementById("template").value="";
   localStorage.removeItem("t");
 }
 
 async function upload(){
   let f=new FormData();
-  f.append("file",file.files[0]);
+  f.append("file",document.getElementById("file").files[0]);
   await fetch("/upload-leads",{method:"POST",body:f});
+  document.getElementById("file").value="";
 }
 
 async function clearLeads(){
@@ -88,8 +89,10 @@ async function removeLead(i){
 async function addInbox(){
   await fetch("/add-inbox",{method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email:email.value,password:pass.value})
+    body:JSON.stringify({email:document.getElementById("email").value,password:document.getElementById("pass").value})
   });
+  document.getElementById("email").value="";
+  document.getElementById("pass").value="";
 }
 
 async function removeInbox(i){
@@ -107,9 +110,9 @@ async function run(){
   await fetch("/run",{method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      subject:subject.value,
-      template:template.value,
-      batch:Number(batch.value)
+      subject:document.getElementById("subject").value,
+      template:document.getElementById("template").value,
+      batch:Number(document.getElementById("batch").value)
     })
   });
 }
@@ -124,20 +127,20 @@ setInterval(async ()=>{
   let r=await fetch("/status");
   let d=await r.json();
 
-  progress.innerText=d.sent+"/"+d.total;
+  document.getElementById("progress").innerText=d.sent+"/"+d.total;
 
-  inboxList.innerHTML="";
+  document.getElementById("inboxList").innerHTML="";
   d.inboxes.forEach((i,idx)=>{
     let li=document.createElement("li");
     li.innerHTML=i.email+" ("+i.sentToday+") <button onclick='removeInbox("+idx+")'>X</button>";
-    inboxList.appendChild(li);
+    document.getElementById("inboxList").appendChild(li);
   });
 
-  leadList.innerHTML="";
+  document.getElementById("leadList").innerHTML="";
   d.leads.slice(0,10).forEach((l,idx)=>{
     let li=document.createElement("li");
     li.innerHTML=l.email+" <button onclick='removeLead("+idx+")'>X</button>";
-    leadList.appendChild(li);
+    document.getElementById("leadList").appendChild(li);
   });
 
 },3000);
