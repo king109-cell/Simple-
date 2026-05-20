@@ -10,7 +10,7 @@ const app = express();
 const PORT = 3000;
 
 // ─── Config ────────────────────────────────────────────────────────────────
-const PASSWORD = process.env.APP_PASSWORD || "dwarkadhishxvivek";
+const PASSWORD = process.env.APP_PASSWORD || "vivek";
 const LEADS_FILE = path.join(__dirname, "leads.json");
 const INBOXES_FILE = path.join(__dirname, "inboxes.json");
 const MAX_DAILY_SEND = 30;
