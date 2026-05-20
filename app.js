@@ -49,7 +49,7 @@ app.post("/add-inbox", async (req, res) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
-    secure: false,
+    secure: true,
     auth: { user: email, pass: password }
   });
 
@@ -138,7 +138,7 @@ async function sendEmail(inbox, lead, subject, template) {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
-    secure: false,
+    secure: true,
     auth: { user: inbox.email, pass: inbox.password }
   });
 
