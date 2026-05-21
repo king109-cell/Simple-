@@ -56,7 +56,7 @@
 
   <input type="password" id="loginPassword" placeholder="Password">
 
-  <button onclick="login()">Login</button>
+  <button type="button" onclick="login()">Login</button>
 </div>
 
 <div id="app">
@@ -67,8 +67,8 @@
     <input type="file" id="csvFile">
 
     <div class="row">
-      <button onclick="uploadCSV()">Upload CSV</button>
-      <button onclick="clearLeads()">Clear Leads</button>
+      <button type="button" onclick="uploadCSV()">Upload CSV</button>
+      <button type="button" onclick="clearLeads()">Clear Leads</button>
     </div>
 
     <ul id="leadList"></ul>
@@ -82,8 +82,8 @@
     <input type="password" id="inboxPassword" placeholder="App Password">
 
     <div class="row">
-      <button onclick="addInbox()">Add Inbox</button>
-      <button onclick="clearInboxes()">Clear All</button>
+      <button type="button" onclick="addInbox()">Add Inbox</button>
+      <button type="button" onclick="clearInboxes()">Clear All</button>
     </div>
 
     <ul id="inboxList"></ul>
@@ -97,8 +97,8 @@
     <textarea id="template" style="height:200px;" placeholder="Use {{name}} and {{icebreaker}}"></textarea>
 
     <div class="row">
-      <button onclick="saveTemplate()">Save Template</button>
-      <button onclick="clearTemplate()">Clear Template</button>
+      <button type="button" onclick="saveTemplate()">Save Template</button>
+      <button type="button" onclick="clearTemplate()">Clear Template</button>
     </div>
   </div>
 
@@ -108,8 +108,8 @@
     <input type="number" id="batch" value="10" placeholder="Batch Size">
 
     <div class="row">
-      <button onclick="runSender()">RUN</button>
-      <button onclick="stopSender()">STOP</button>
+      <button type="button" onclick="runSender()">RUN</button>
+      <button type="button" onclick="stopSender()">STOP</button>
     </div>
 
     <h3 id="progress">0/0</h3>
@@ -145,20 +145,32 @@ async function login() {
 async function uploadCSV() {
   const file = document.getElementById("csvFile").files[0];
 
+  if (!file) {
+    alert("Please select CSV file");
+    return;
+  }
+
   const formData = new FormData();
 
   formData.append("file", file);
 
-  const res = await fetch("/upload-leads", {
-    method: "POST",
-    body: formData
-  });
+  try {
 
-  const data = await res.json();
+    const res = await fetch("/upload-leads", {
+      method: "POST",
+      body: formData
+    });
 
-  alert(`Uploaded ${data.total} leads`);
+    const data = await res.json();
 
-  refreshStatus();
+    alert(`Uploaded ${data.total} leads`);
+
+    refreshStatus();
+
+  } catch (err) {
+    console.error(err);
+    alert("Error uploading CSV");
+  }
 }
 
 async function clearLeads() {
@@ -170,25 +182,42 @@ async function clearLeads() {
 }
 
 async function addInbox() {
-  const email = document.getElementById("inboxEmail").value;
-  const password = document.getElementById("inboxPassword").value;
 
-  const res = await fetch("/add-inbox", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email,
-      password
-    })
-  });
+  try {
 
-  const data = await res.json();
+    const email = document.getElementById("inboxEmail").value.trim();
+    const password = document.getElementById("inboxPassword").value.trim();
 
-  alert(data.message);
+    if (!email || !password) {
+      alert("Please enter email and app password");
+      return;
+    }
 
-  refreshStatus();
+    const res = await fetch("/add-inbox", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        password
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert(data.message || "Inbox added successfully");
+    } else {
+      alert(data.message || "Failed to add inbox");
+    }
+
+    refreshStatus();
+
+  } catch (err) {
+    console.error(err);
+    alert("Server error while adding inbox");
+  }
 }
 
 async function clearInboxes() {
@@ -278,40 +307,46 @@ async function removeInbox(index) {
 }
 
 async function refreshStatus() {
-  const res = await fetch("/status");
+  try {
 
-  const data = await res.json();
+    const res = await fetch("/status");
 
-  document.getElementById("progress").innerText =
-    `${data.sentCount}/${data.total}`;
+    const data = await res.json();
 
-  const inboxList = document.getElementById("inboxList");
+    document.getElementById("progress").innerText =
+      `${data.sentCount}/${data.total}`;
 
-  inboxList.innerHTML = "";
+    const inboxList = document.getElementById("inboxList");
 
-  data.inboxes.forEach((inbox, index) => {
-    const li = document.createElement("li");
+    inboxList.innerHTML = "";
 
-    li.innerHTML =
-      `${inbox.email} (${inbox.sentToday}) 
-      <button onclick="removeInbox(${index})">X</button>`;
+    data.inboxes.forEach((inbox, index) => {
+      const li = document.createElement("li");
 
-    inboxList.appendChild(li);
-  });
+      li.innerHTML =
+        `${inbox.email} (${inbox.sentToday})
+        <button type="button" onclick="removeInbox(${index})">X</button>`;
 
-  const leadList = document.getElementById("leadList");
+      inboxList.appendChild(li);
+    });
 
-  leadList.innerHTML = "";
+    const leadList = document.getElementById("leadList");
 
-  data.leads.slice(0, 10).forEach((lead, index) => {
-    const li = document.createElement("li");
+    leadList.innerHTML = "";
 
-    li.innerHTML =
-      `${lead.name} - ${lead.email}
-      <button onclick="removeLead(${index})">X</button>`;
+    data.leads.slice(0, 10).forEach((lead, index) => {
+      const li = document.createElement("li");
 
-    leadList.appendChild(li);
-  });
+      li.innerHTML =
+        `${lead.name} - ${lead.email}
+        <button type="button" onclick="removeLead(${index})">X</button>`;
+
+      leadList.appendChild(li);
+    });
+
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 setInterval(refreshStatus, 3000);
