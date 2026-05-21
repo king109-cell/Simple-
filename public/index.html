@@ -1,813 +1,322 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cold Email Pro - Automation Tool</title>
+  <title>Cold Email Tool Pro</title>
+
   <style>
-    * {
-      margin: 0;
-      padding: 0;
+    body {
+      font-family: Arial;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+      background: #f5f5f5;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
       box-sizing: border-box;
     }
 
-    :root {
-      --primary: #0f172a;
-      --secondary: #1e293b;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --border: #334155;
-      --text-primary: #f1f5f9;
-      --text-secondary: #cbd5e1;
-      --bg-hover: #1e293b;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, var(--primary) 0%, #0d1f2d 100%);
-      color: var(--text-primary);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* Login Screen */
-    .login-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, var(--primary) 0%, #0d1f2d 100%);
-      z-index: 1000;
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    .login-container.hidden {
-      display: none;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .login-box {
-      background: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 48px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-      animation: slideUp 0.4s ease-out;
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .login-box h1 {
-      font-size: 28px;
-      margin-bottom: 12px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .login-box p {
-      color: var(--text-secondary);
-      margin-bottom: 32px;
-      font-size: 14px;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    input[type="text"],
-    input[type="email"],
-    input[type="password"],
-    input[type="number"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-size: 14px;
-      transition: all 0.2s ease;
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus,
-    input[type="email"]:focus,
-    input[type="password"]:focus,
-    input[type="number"]:focus,
-    textarea:focus,
-    select:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.05);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 180px;
-      font-family: 'Monaco', 'Courier New', monospace;
-      font-size: 13px;
-    }
-
     button {
-      padding: 12px 20px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    button:hover {
-      background: var(--accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+    ul {
+      padding-left: 20px;
     }
 
-    button:active {
-      transform: translateY(0);
-    }
-
-    button.danger {
-      background: var(--danger);
-    }
-
-    button.danger:hover {
-      background: #dc2626;
-    }
-
-    button.success {
-      background: var(--success);
-    }
-
-    button.success:hover {
-      background: #059669;
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Main App */
-    .app-container {
+    .row {
       display: flex;
-      height: 100vh;
-      width: 100%;
+      gap: 10px;
     }
 
-    .app-container.hidden {
+    .row button {
+      width: auto;
+    }
+
+    #app {
       display: none;
-    }
-
-    .sidebar {
-      width: 320px;
-      background: var(--secondary);
-      border-right: 1px solid var(--border);
-      overflow-y: auto;
-      padding: 24px;
-    }
-
-    .sidebar h2 {
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-secondary);
-      margin: 24px 0 12px 0;
-    }
-
-    .sidebar h2:first-child {
-      margin-top: 0;
-    }
-
-    .main-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 40px;
-    }
-
-    .section {
-      background: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-      animation: slideUp 0.4s ease-out;
-    }
-
-    .section h3 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      color: var(--text-primary);
-    }
-
-    .section-subtitle {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .form-row.full {
-      flex-direction: column;
-    }
-
-    .form-group {
-      flex: 1;
-    }
-
-    .form-group.full {
-      flex: 1 1 100%;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .button-group button {
-      flex: 1;
-    }
-
-    /* Lists */
-    .list {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--primary);
-    }
-
-    .list-item {
-      padding: 12px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      gap: 12px;
-    }
-
-    .list-item:last-child {
-      border-bottom: none;
-    }
-
-    .list-item.empty {
-      padding: 24px;
-      text-align: center;
-      color: var(--text-secondary);
-      font-style: italic;
-    }
-
-    .list-item-label {
-      flex: 1;
-      word-break: break-all;
-    }
-
-    .list-item-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: #60a5fa;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .list-item-remove {
-      background: var(--danger);
-      padding: 6px 10px;
-      font-size: 12px;
-      min-width: fit-content;
-    }
-
-    .list-item-remove:hover {
-      background: #dc2626;
-    }
-
-    /* Progress */
-    .progress-container {
-      margin-top: 20px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: var(--primary);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 100%);
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .progress-text {
-      font-size: 13px;
-      color: var(--text-secondary);
-      display: flex;
-      justify-content: space-between;
-    }
-
-    /* Status Indicator */
-    .status-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-
-    .status-badge.active {
-      background: rgba(16, 185, 129, 0.2);
-      color: #6ee7b7;
-    }
-
-    .status-badge.idle {
-      background: rgba(100, 116, 139, 0.2);
-      color: var(--text-secondary);
-    }
-
-    /* File Upload */
-    .file-input-wrapper {
-      position: relative;
-      display: inline-block;
-      width: 100%;
-    }
-
-    .file-input-wrapper input[type="file"] {
-      display: none;
-    }
-
-    .file-input-label {
-      display: block;
-      padding: 12px 14px;
-      background: var(--primary);
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .file-input-label:hover {
-      border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.05);
-      color: var(--text-primary);
-    }
-
-    /* Error Messages */
-    .error-message {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-
-    .success-message {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #6ee7b7;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--secondary);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
-    }
-
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .sidebar {
-        width: 280px;
-        padding: 16px;
-      }
-
-      .main-content {
-        padding: 24px;
-      }
-
-      .section {
-        padding: 16px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .app-container {
-        flex-direction: column;
-      }
-
-      .sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        max-height: 40vh;
-        overflow-x: auto;
-        display: flex;
-        flex-wrap: wrap;
-        align-content: flex-start;
-      }
-
-      .sidebar h2 {
-        flex-basis: 100%;
-      }
-
-      .main-content {
-        flex: 1;
-        padding: 16px;
-      }
-
-      .section {
-        margin-bottom: 16px;
-      }
-
-      .form-row {
-        flex-direction: column;
-      }
-
-      .button-group {
-        flex-direction: column;
-      }
     }
   </style>
 </head>
+
 <body>
-  <!-- Login Screen -->
-  <div class="login-container" id="loginContainer">
-    <div class="login-box">
-      <h1>Cold Email Pro</h1>
-      <p>Secure access to your email automation tool</p>
-      <div class="form-group">
-        <label for="passwordInput">Master Password</label>
-        <input 
-          type="password" 
-          id="passwordInput" 
-          placeholder="Enter your password"
-          autocomplete="current-password"
-        >
-      </div>
-      <div id="loginError" class="error-message" style="display: none;"></div>
-      <button onclick="login()" style="width: 100%;">LOGIN</button>
+
+<div class="box" id="loginBox">
+  <h2>Login</h2>
+
+  <input type="password" id="loginPassword" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="app">
+
+  <div class="box">
+    <h2>Leads</h2>
+
+    <input type="file" id="csvFile">
+
+    <div class="row">
+      <button onclick="uploadCSV()">Upload CSV</button>
+      <button onclick="clearLeads()">Clear Leads</button>
+    </div>
+
+    <ul id="leadList"></ul>
+  </div>
+
+  <div class="box">
+    <h2>Inboxes</h2>
+
+    <input type="email" id="inboxEmail" placeholder="Gmail">
+
+    <input type="password" id="inboxPassword" placeholder="App Password">
+
+    <div class="row">
+      <button onclick="addInbox()">Add Inbox</button>
+      <button onclick="clearInboxes()">Clear All</button>
+    </div>
+
+    <ul id="inboxList"></ul>
+  </div>
+
+  <div class="box">
+    <h2>Email Composer</h2>
+
+    <input type="text" id="subject" placeholder="Subject">
+
+    <textarea id="template" style="height:200px;" placeholder="Use {{name}} and {{icebreaker}}"></textarea>
+
+    <div class="row">
+      <button onclick="saveTemplate()">Save Template</button>
+      <button onclick="clearTemplate()">Clear Template</button>
     </div>
   </div>
 
-  <!-- Main App -->
-  <div class="app-container hidden" id="appContainer">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <h2>📊 Status</h2>
-      <div class="status-badge idle" id="statusBadge">Idle</div>
-      
-      <h2>📈 Progress</h2>
-      <div style="font-size: 24px; font-weight: 700; color: var(--accent);" id="progressCounter">0/0</div>
-      
-      <h2>📬 Inboxes</h2>
-      <div class="list" id="inboxList">
-        <div class="list-item empty">No inboxes</div>
-      </div>
+  <div class="box">
+    <h2>Control</h2>
 
-      <h2>📋 Leads</h2>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;" id="leadsCount">0</div>
-      <div class="list" id="leadsList" style="max-height: 200px;">
-        <div class="list-item empty">No leads uploaded</div>
-      </div>
+    <input type="number" id="batch" value="10" placeholder="Batch Size">
+
+    <div class="row">
+      <button onclick="runSender()">RUN</button>
+      <button onclick="stopSender()">STOP</button>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Inbox Management -->
-      <div class="section">
-        <h3>📧 Inbox Management</h3>
-        <p class="section-subtitle">Add Gmail accounts with App Passwords to send from multiple inboxes</p>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="emailInput">Gmail Address</label>
-            <input type="email" id="emailInput" placeholder="your-email@gmail.com">
-          </div>
-          <div class="form-group">
-            <label for="appPasswordInput">App Password</label>
-            <input type="password" id="appPasswordInput" placeholder="16-character app password">
-          </div>
-        </div>
-        
-        <div id="inboxError" class="error-message" style="display: none;"></div>
-        <div id="inboxSuccess" class="success-message" style="display: none;"></div>
-        
-        <div class="button-group">
-          <button onclick="addInbox()">Add Inbox</button>
-          <button class="danger" onclick="clearInboxes()">Clear All</button>
-        </div>
-      </div>
-
-      <!-- Leads Upload -->
-      <div class="section">
-        <h3>📥 Upload Leads</h3>
-        <p class="section-subtitle">CSV format with 'name' and 'email' columns</p>
-        
-        <div class="file-input-wrapper">
-          <input type="file" id="csvFile" accept=".csv">
-          <label for="csvFile" class="file-input-label">
-            Drag & drop CSV here or click to browse
-          </label>
-        </div>
-        
-        <div id="uploadError" class="error-message" style="display: none; margin-top: 12px;"></div>
-        <div id="uploadSuccess" class="success-message" style="display: none; margin-top: 12px;"></div>
-        
-        <div class="button-group" style="margin-top: 12px;">
-          <button onclick="uploadLeads()">Upload CSV</button>
-          <button class="danger" onclick="clearLeads()">Clear Leads</button>
-        </div>
-      </div>
-
-      <!-- Email Composer -->
-      <div class="section">
-        <h3>✍️ Email Composer</h3>
-        <p class="section-subtitle">Use {{name}} and {{icebreaker}} as variables</p>
-        
-        <div class="form-group full">
-          <label for="subjectInput">Email Subject</label>
-          <input type="text" id="subjectInput" placeholder="Quick question about {{name}}'s work">
-        </div>
-
-        <div class="form-group full">
-          <label for="templateInput">Email Body</label>
-          <textarea id="templateInput" placeholder="Hi {{name}},
-
-{{icebreaker}} - I saw your work and thought you'd find this relevant...
-
-Best regards"></textarea>
-        </div>
-
-        <button onclick="saveTemplate()">Save to Local Storage</button>
-      </div>
-
-      <!-- Batch Control -->
-      <div class="section">
-        <h3>⚡ Batch Control</h3>
-        <p class="section-subtitle">Configure and launch your email campaign</p>
-        
-        <div class="form-group">
-          <label for="batchSizeInput">Batch Size (emails)</label>
-          <input type="number" id="batchSizeInput" value="10" min="1" max="30">
-        </div>
-
-        <div class="progress-container" id="progressContainer" style="display: none;">
-          <div class="progress-bar">
-            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-          </div>
-          <div class="progress-text">
-            <span>Sending progress</span>
-            <span id="progressPercent">0%</span>
-          </div>
-        </div>
-
-        <div class="button-group">
-          <button class="success" onclick="startSending()">RUN CAMPAIGN</button>
-          <button class="danger" onclick="stopSending()">STOP</button>
-        </div>
-      </div>
-    </div>
+    <h3 id="progress">0/0</h3>
   </div>
 
-  <script>
-    const API_BASE = '/';
+</div>
 
-    // Auto-refresh every 3 seconds
-    let statusInterval = null;
+<script>
 
-    async function login() {
-      const password = document.getElementById('passwordInput').value;
-      const errorDiv = document.getElementById('loginError');
+async function login() {
+  const password = document.getElementById("loginPassword").value;
 
-      if (!password) {
-        errorDiv.textContent = 'Please enter a password';
-        errorDiv.style.display = 'block';
-        return;
-      }
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ password })
+  });
 
-      try {
-        const response = await fetch(`${API_BASE}login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
+  if (res.ok) {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
 
-        if (response.ok) {
-          document.getElementById('loginContainer').classList.add('hidden');
-          document.getElementById('appContainer').classList.remove('hidden');
-          loadTemplate();
-          startStatusRefresh();
-        } else {
-          errorDiv.textContent = 'Invalid password';
-          errorDiv.style.display = 'block';
-        }
-      } catch (error) {
-        errorDiv.textContent = error.message;
-        errorDiv.style.display = 'block';
-      }
-    }
+    loadTemplate();
 
-    async function addInbox() {
-      const email = document.getElementById('emailInput').value;
-      const appPassword = document.getElementById('appPasswordInput').value;
-      const errorDiv = document.getElementById('inboxError');
-      const successDiv = document.getElementById('inboxSuccess');
+    refreshStatus();
+  } else {
+    alert("Wrong password");
+  }
+}
 
-      if (!email || !appPassword) {
-        showError(errorDiv, 'Please fill in all fields');
-        return;
-      }
+async function uploadCSV() {
+  const file = document.getElementById("csvFile").files[0];
 
-      try {
-        const response = await fetch(`${API_BASE}add-inbox`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, appPassword })
-        });
+  const formData = new FormData();
 
-        if (response.ok) {
-          showSuccess(successDiv, 'Inbox added successfully!');
-          document.getElementById('emailInput').value = '';
-          document.getElementById('appPasswordInput').value = '';
-          updateStatus();
-        } else {
-          const data = await response.json();
-          showError(errorDiv, data.error);
-        }
-      } catch (error) {
-        showError(errorDiv, error.message);
-      }
-    }
+  formData.append("file", file);
 
-    async function clearInboxes() {
-      if (!confirm('Clear all inboxes?')) return;
+  const res = await fetch("/upload-leads", {
+    method: "POST",
+    body: formData
+  });
 
-      try {
-        const response = await fetch(`${API_BASE}clear-inboxes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
+  const data = await res.json();
 
-        if (response.ok) {
-          updateStatus();
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
+  alert(`Uploaded ${data.total} leads`);
 
-    async function uploadLeads() {
-      const fileInput = document.getElementById('csvFile');
-      const errorDiv = document.getElementById('uploadError');
-      const successDiv = document.getElementById('uploadSuccess');
+  refreshStatus();
+}
 
-      if (!fileInput.files.length) {
-        showError(errorDiv, 'Please select a CSV file');
-        return;
-      }
+async function clearLeads() {
+  await fetch("/clear-leads", {
+    method: "POST"
+  });
 
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
+  refreshStatus();
+}
 
-      try {
-        const response = await fetch(`${API_BASE}upload-leads`, {
-          method: 'POST',
-          body: formData
-        });
+async function addInbox() {
+  const email = document.getElementById("inboxEmail").value;
+  const password = document.getElementById("inboxPassword").value;
 
-        if (response.ok) {
-          const data = await response.json();
-          showSuccess(successDiv, `Uploaded ${data.count} leads!`);
-          fileInput.value = '';
-          updateStatus();
-        } else {
-          const data = await response.json();
-          showError(errorDiv, data.error);
-        }
-      } catch (error) {
-        showError(errorDiv, error.message);
-      }
-    }
+  const res = await fetch("/add-inbox", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      password
+    })
+  });
 
-    async function clearLeads() {
-      if (!confirm('Clear all leads?')) return;
+  const data = await res.json();
 
-      try {
-        const response = await fetch(`${API_BASE}clear-leads`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
+  alert(data.message);
 
-        if (response.ok) {
-          updateStatus();
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
+  refreshStatus();
+}
 
-    async function removeInbox(index) {
-      try {
-        await fetch(`${API_BASE}remove-inbox`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ index })
-        });
-        updateStatus();
-      } catch (error) {
-        console.error(error);
-      }
-    }
+async function clearInboxes() {
+  await fetch("/clear-inboxes", {
+    method: "POST"
+  });
 
-    async function removeLead(index) {
-      try {
-        await fetch(`${API_BASE}remove-lead`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ index })
-        });
-        updateStatus();
-      } catch (error) {
-        console.error(error);
-      }
-    }
+  refreshStatus();
+}
 
-    function sav
+function saveTemplate() {
+  localStorage.setItem(
+    "email_template",
+    document.getElementById("template").value
+  );
+
+  localStorage.setItem(
+    "email_subject",
+    document.getElementById("subject").value
+  );
+
+  alert("Saved");
+}
+
+function loadTemplate() {
+  document.getElementById("template").value =
+    localStorage.getItem("email_template") || "";
+
+  document.getElementById("subject").value =
+    localStorage.getItem("email_subject") || "";
+}
+
+function clearTemplate() {
+  document.getElementById("template").value = "";
+}
+
+async function runSender() {
+  const subject = document.getElementById("subject").value;
+  const template = document.getElementById("template").value;
+  const batch = document.getElementById("batch").value;
+
+  await fetch("/run", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      subject,
+      template,
+      batch
+    })
+  });
+
+  refreshStatus();
+}
+
+async function stopSender() {
+  await fetch("/stop", {
+    method: "POST"
+  });
+
+  refreshStatus();
+}
+
+async function removeLead(index) {
+  await fetch("/remove-lead", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ index })
+  });
+
+  refreshStatus();
+}
+
+async function removeInbox(index) {
+  await fetch("/remove-inbox", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ index })
+  });
+
+  refreshStatus();
+}
+
+async function refreshStatus() {
+  const res = await fetch("/status");
+
+  const data = await res.json();
+
+  document.getElementById("progress").innerText =
+    `${data.sentCount}/${data.total}`;
+
+  const inboxList = document.getElementById("inboxList");
+
+  inboxList.innerHTML = "";
+
+  data.inboxes.forEach((inbox, index) => {
+    const li = document.createElement("li");
+
+    li.innerHTML =
+      `${inbox.email} (${inbox.sentToday}) 
+      <button onclick="removeInbox(${index})">X</button>`;
+
+    inboxList.appendChild(li);
+  });
+
+  const leadList = document.getElementById("leadList");
+
+  leadList.innerHTML = "";
+
+  data.leads.slice(0, 10).forEach((lead, index) => {
+    const li = document.createElement("li");
+
+    li.innerHTML =
+      `${lead.name} - ${lead.email}
+      <button onclick="removeLead(${index})">X</button>`;
+
+    leadList.appendChild(li);
+  });
+}
+
+setInterval(refreshStatus, 3000);
+
+</script>
+
+</body>
+</html>
