@@ -1,386 +1,287 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Cold Email Tool Pro</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cold Email Automation Tool</title>
   <style>
-    body{
-      font-family: Arial;
-      max-width: 1200px;
-      margin: auto;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-
-    .card{
-      background: white;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-    }
-
-    input, textarea, button{
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      box-sizing: border-box;
-    }
-
-    button{
-      cursor: pointer;
-    }
-
-    ul{
-      list-style: none;
-      padding: 0;
-    }
-
-    li{
-      background: #eee;
-      padding: 10px;
-      margin-top: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-radius: 5px;
-    }
-
-    .hidden{
-      display: none;
-    }
-
-    .row{
-      display: flex;
-      gap: 10px;
-    }
-
-    .row > *{
-      flex: 1;
-    }
-
-    #status{
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    .success{
-      color: green;
-    }
-
-    .error{
-      color: red;
-    }
+    * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body { max-width: 800px; margin: 20px auto; padding: 0 20px; }
+    .hidden { display: none !important; }
+    section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 6px; }
+    h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    input, textarea, button { margin: 5px; padding: 8px; font-size: 0.95rem; }
+    button { cursor: pointer; }
+    .row { display: flex; align-items: center; flex-wrap: wrap; }
+    .full-width { width: 100%; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 5px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+    .error { color: red; }
+    .success { color: green; }
+    .inbox-row, .lead-row { display: flex; gap: 10px; align-items: center; }
+    .progress { font-size: 1.1rem; }
   </style>
 </head>
-
 <body>
+  <!-- Login -->
+  <section id="login-section">
+    <h2>Login</h2>
+    <input type="password" id="password" placeholder="Enter password">
+    <button id="login-btn">Login</button>
+    <div id="login-error" class="error"></div>
+  </section>
 
-<div class="card" id="loginSection">
-  <h2>Login</h2>
+  <!-- App -->
+  <div id="app" class="hidden">
+    <h1>Cold Email Automation Tool</h1>
 
-  <input type="password" id="loginPassword" placeholder="Password">
+    <section>
+      <h2>Inbox Management</h2>
+      <div class="inbox-row">
+        <input type="email" id="inbox-email" placeholder="Gmail address">
+        <input type="password" id="inbox-app-password" placeholder="App Password">
+        <button id="add-inbox-btn">Add</button>
+      </div>
+      <button id="clear-inboxes-btn">Clear All Inboxes</button>
+      <ul id="inbox-list"></ul>
+    </section>
 
-  <button onclick="login()">Login</button>
+    <section>
+      <h2>Leads</h2>
+      <input type="file" id="csv-file" accept=".csv">
+      <button id="upload-csv-btn">Upload CSV</button>
+      <button id="clear-leads-btn">Clear All Leads</button>
+      <ul id="lead-list"></ul>
+    </section>
 
-  <p id="loginMsg"></p>
-</div>
+    <section>
+      <h2>Email Composer</h2>
+      <input type="text" id="subject" placeholder="Subject" class="full-width">
+      <textarea id="template" class="full-width" rows="5" placeholder="Write your email... Use {{name}} and {{icebreaker}}"></textarea>
+      <button id="clear-template-btn">Clear Template</button>
+    </section>
 
-<div id="app" class="hidden">
+    <section>
+      <h2>Batch & Control</h2>
+      <div class="row">
+        <label>Batch size: <input type="number" id="batch-size" value="10" min="1" style="width:80px"></label>
+        <button id="run-btn">▶ RUN</button>
+        <button id="stop-btn" disabled>⏹ STOP</button>
+      </div>
+      <div class="progress" id="progress">0 / 0</div>
+      <div id="run-status"></div>
+    </section>
 
-  <div class="card">
-    <h2>Leads</h2>
-
-    <input type="file" id="csvFile">
-
-    <div class="row">
-      <button onclick="uploadCSV()">Upload CSV</button>
-      <button onclick="clearLeads()">Clear Leads</button>
-    </div>
-
-    <ul id="leadList"></ul>
+    <div id="global-message"></div>
   </div>
 
-  <div class="card">
-    <h2>Inbox Management</h2>
-
-    <input type="email" id="inboxEmail" placeholder="Gmail">
-
-    <input type="password" id="inboxPassword" placeholder="App Password">
-
-    <div class="row">
-      <button onclick="addInbox()">Add Inbox</button>
-      <button onclick="clearInboxes()">Clear All</button>
-    </div>
-
-    <p id="inboxMsg"></p>
-
-    <ul id="inboxList"></ul>
-  </div>
-
-  <div class="card">
-    <h2>Email Composer</h2>
-
-    <input type="text" id="subject" placeholder="Subject">
-
-    <textarea
-      id="template"
-      placeholder="Use {{name}} and {{icebreaker}}"
-      style="height:200px"
-    ></textarea>
-
-    <button onclick="clearTemplate()">Clear Template</button>
-  </div>
-
-  <div class="card">
-    <h2>Controls</h2>
-
-    <input type="number" id="batch" value="10">
-
-    <div class="row">
-      <button onclick="runEmails()">RUN</button>
-      <button onclick="stopEmails()">STOP</button>
-    </div>
-
-    <p id="status">0/0</p>
-  </div>
-
-</div>
-
-<script>
-
-async function login(){
-  const password = document.getElementById("loginPassword").value;
-
-  const res = await fetch("/login",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({password})
-  });
-
-  const data = await res.json();
-
-  if(data.success){
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-
-    loadTemplate();
-    refreshStatus();
-    setInterval(refreshStatus,3000);
-  }else{
-    document.getElementById("loginMsg").innerHTML =
-      `<span class="error">${data.message}</span>`;
-  }
-}
-
-async function uploadCSV(){
-  const file = document.getElementById("csvFile").files[0];
-
-  if(!file){
-    alert("Select CSV");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("file",file);
-
-  const res = await fetch("/upload-leads",{
-    method:"POST",
-    body:formData
-  });
-
-  const data = await res.json();
-
-  alert(`Uploaded ${data.count} leads`);
-
-  refreshStatus();
-}
-
-async function clearLeads(){
-  await fetch("/clear-leads",{
-    method:"POST"
-  });
-
-  refreshStatus();
-}
-
-async function addInbox(){
-  const email = document.getElementById("inboxEmail").value;
-  const password = document.getElementById("inboxPassword").value;
-
-  const res = await fetch("/add-inbox",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      email,
-      password
-    })
-  });
-
-  const data = await res.json();
-
-  if(data.success){
-    document.getElementById("inboxMsg").innerHTML =
-      `<span class="success">${data.message}</span>`;
-  }else{
-    document.getElementById("inboxMsg").innerHTML =
-      `<span class="error">${data.message}</span>`;
-  }
-
-  refreshStatus();
-}
-
-async function clearInboxes(){
-  await fetch("/clear-inboxes",{
-    method:"POST"
-  });
-
-  refreshStatus();
-}
-
-async function removeInbox(index){
-  await fetch("/remove-inbox",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({index})
-  });
-
-  refreshStatus();
-}
-
-async function removeLead(index){
-  await fetch("/remove-lead",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({index})
-  });
-
-  refreshStatus();
-}
-
-function saveTemplate(){
-  localStorage.setItem(
-    "emailTemplate",
-    document.getElementById("template").value
-  );
-
-  localStorage.setItem(
-    "emailSubject",
-    document.getElementById("subject").value
-  );
-}
-
-function loadTemplate(){
-  document.getElementById("template").value =
-    localStorage.getItem("emailTemplate") || "";
-
-  document.getElementById("subject").value =
-    localStorage.getItem("emailSubject") || "";
-}
-
-function clearTemplate(){
-  document.getElementById("template").value = "";
-  document.getElementById("subject").value = "";
-
-  saveTemplate();
-}
-
-document.getElementById("template")
-  .addEventListener("input",saveTemplate);
-
-document.getElementById("subject")
-  .addEventListener("input",saveTemplate);
-
-async function runEmails(){
-
-  saveTemplate();
-
-  const subject =
-    document.getElementById("subject").value;
-
-  const template =
-    document.getElementById("template").value;
-
-  const batch =
-    document.getElementById("batch").value;
-
-  const res = await fetch("/run",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      subject,
-      template,
-      batch
-    })
-  });
-
-  const data = await res.json();
-
-  alert(data.message);
-}
-
-async function stopEmails(){
-  await fetch("/stop",{
-    method:"POST"
-  });
-
-  alert("Stopped");
-}
-
-async function refreshStatus(){
-
-  const res = await fetch("/status");
-
-  const data = await res.json();
-
-  document.getElementById("status").innerText =
-    `${data.sent}/${data.total}`;
-
-  const inboxList =
-    document.getElementById("inboxList");
-
-  inboxList.innerHTML = "";
-
-  data.inboxes.forEach((inbox,index)=>{
-
-    const li = document.createElement("li");
-
-    li.innerHTML = `
-      ${inbox.email} (${inbox.sentToday}/30)
-      <button onclick="removeInbox(${index})">X</button>
-    `;
-
-    inboxList.appendChild(li);
-  });
-
-  const leadList =
-    document.getElementById("leadList");
-
-  leadList.innerHTML = "";
-
-  data.leads.forEach((lead,index)=>{
-
-    const li = document.createElement("li");
-
-    li.innerHTML = `
-      ${lead.name} - ${lead.email}
-      <button onclick="removeLead(${index})">X</button>
-    `;
-
-    leadList.appendChild(li);
-  });
-}
-
-</script>
-
+  <script>
+    let loggedIn = false;
+    let statusInterval = null;
+
+    function showMessage(msg, isError = false) {
+      const el = document.getElementById('global-message');
+      el.textContent = msg;
+      el.className = isError ? 'error' : 'success';
+      setTimeout(() => el.textContent = '', 4000);
+    }
+
+    async function api(url, method = 'GET', body = null) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(url, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const password = document.getElementById('password').value;
+      try {
+        await api('/login', 'POST', { password });
+        loggedIn = true;
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        loadSavedTemplate();
+        startStatusPolling();
+      } catch (err) {
+        document.getElementById('login-error').textContent = err.message;
+      }
+    });
+
+    function saveTemplateToStorage(subject, template) {
+      localStorage.setItem('email_subject', subject);
+      localStorage.setItem('email_template', template);
+    }
+    function loadSavedTemplate() {
+      const subj = localStorage.getItem('email_subject') || '';
+      const templ = localStorage.getItem('email_template') || '';
+      document.getElementById('subject').value = subj;
+      document.getElementById('template').value = templ;
+    }
+
+    document.getElementById('subject').addEventListener('input', () => {
+      saveTemplateToStorage(document.getElementById('subject').value, document.getElementById('template').value);
+    });
+    document.getElementById('template').addEventListener('input', () => {
+      saveTemplateToStorage(document.getElementById('subject').value, document.getElementById('template').value);
+    });
+    document.getElementById('clear-template-btn').addEventListener('click', () => {
+      document.getElementById('subject').value = '';
+      document.getElementById('template').value = '';
+      saveTemplateToStorage('', '');
+    });
+
+    document.getElementById('add-inbox-btn').addEventListener('click', async () => {
+      const email = document.getElementById('inbox-email').value.trim();
+      const password = document.getElementById('inbox-app-password').value.trim();
+      if (!email || !password) return showMessage('Fill both fields', true);
+      try {
+        const res = await api('/add-inbox', 'POST', { email, password });
+        showMessage(res.message || 'Inbox added');
+        document.getElementById('inbox-email').value = '';
+        document.getElementById('inbox-app-password').value = '';
+        refreshStatus();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    document.getElementById('clear-inboxes-btn').addEventListener('click', async () => {
+      if (!confirm('Clear ALL inboxes?')) return;
+      try {
+        await api('/clear-inboxes', 'POST');
+        showMessage('All inboxes cleared');
+        refreshStatus();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    document.getElementById('upload-csv-btn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('csv-file');
+      if (!fileInput.files.length) return showMessage('Select a CSV file', true);
+      const formData = new FormData();
+      formData.append('csvfile', fileInput.files[0]);
+      try {
+        const res = await fetch('/upload-leads', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        showMessage(`Added ${data.added} leads. Total: ${data.total}`);
+        fileInput.value = '';
+        refreshStatus();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    document.getElementById('clear-leads-btn').addEventListener('click', async () => {
+      if (!confirm('Clear ALL leads?')) return;
+      try {
+        await api('/clear-leads', 'POST');
+        showMessage('All leads cleared');
+        refreshStatus();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    document.getElementById('run-btn').addEventListener('click', async () => {
+      const subject = document.getElementById('subject').value.trim();
+      const template = document.getElementById('template').value.trim();
+      const batchCount = parseInt(document.getElementById('batch-size').value) || 10;
+      if (!subject || !template) return showMessage('Subject and template required', true);
+      try {
+        await api('/run', 'POST', { subject, template, batchCount });
+        showMessage('Sending started');
+        document.getElementById('run-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', async () => {
+      try {
+        await api('/stop', 'POST');
+        showMessage('Sending stopped');
+        document.getElementById('run-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    async function refreshStatus() {
+      if (!loggedIn) return;
+      try {
+        const status = await api('/status');
+        updateUI(status);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateUI(status) {
+      document.getElementById('progress').textContent = `${status.sentCount} / ${status.totalLeads}`;
+      if (status.running) {
+        document.getElementById('run-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+      } else {
+        document.getElementById('run-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+      }
+      document.getElementById('run-status').textContent = status.running ? '⏳ Sending in progress...' : '';
+
+      const inboxUl = document.getElementById('inbox-list');
+      inboxUl.innerHTML = '';
+      status.inboxes.forEach(ib => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${ib.email} (sent today: ${ib.sentToday})</span>
+                        <button data-index="${ib.index}" class="remove-inbox-btn">✕</button>`;
+        inboxUl.appendChild(li);
+      });
+      document.querySelectorAll('.remove-inbox-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const index = parseInt(e.target.dataset.index);
+          try {
+            await api('/remove-inbox', 'POST', { index });
+            showMessage('Inbox removed');
+            refreshStatus();
+          } catch (err) {
+            showMessage(err.message, true);
+          }
+        });
+      });
+
+      const leadUl = document.getElementById('lead-list');
+      leadUl.innerHTML = '';
+      status.leads.forEach(lead => {
+        const li = document.createElement('li');
+        const icon = lead.sent ? '✅' : '⬜';
+        li.innerHTML = `<span>${icon} ${lead.name} &lt;${lead.email}&gt; ${lead.icebreaker ? '• ' + lead.icebreaker : ''}</span>
+                        <button data-index="${lead.index}" class="remove-lead-btn">✕</button>`;
+        leadUl.appendChild(li);
+      });
+      document.querySelectorAll('.remove-lead-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const index = parseInt(e.target.dataset.index);
+          try {
+            await api('/remove-lead', 'POST', { index });
+            showMessage('Lead removed');
+            refreshStatus();
+          } catch (err) {
+            showMessage(err.message, true);
+          }
+        });
+      });
+    }
+
+    function startStatusPolling() {
+      if (statusInterval) clearInterval(statusInterval);
+      refreshStatus();
+      statusInterval = setInterval(refreshStatus, 3000);
+    }
+  </script>
 </body>
 </html>
