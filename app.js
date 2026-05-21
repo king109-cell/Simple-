@@ -6,14 +6,13 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;          // ← dynamic port for Render
+const PORT = process.env.PORT || 3000;
 const PASSWORD = 'dwarkadhishxvivek';
 const DAILY_LIMIT = 30;
-const MIN_DELAY = 30000; // 30 seconds
-const MAX_DELAY = 90000; // 90 seconds
+const MIN_DELAY = 30000;
+const MAX_DELAY = 90000;
 const MAX_RETRIES = 3;
 
-// Ensure required directories exist
 ['uploads', 'public'].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
@@ -22,7 +21,6 @@ const LEADS_FILE = path.join(__dirname, 'leads.json');
 const INBOXES_FILE = path.join(__dirname, 'inboxes.json');
 const STATE_FILE = path.join(__dirname, 'state.json');
 
-// ---------- Data helpers ----------
 function readJSON(file, defaultValue = []) {
   try {
     if (fs.existsSync(file)) {
@@ -47,7 +45,7 @@ let state = readJSON(STATE_FILE, {
   template: '',
   batchSize: 10,
 });
-// Force running to false after a restart
+
 if (state.running) {
   state.running = false;
   writeJSON(STATE_FILE, state);
@@ -55,13 +53,10 @@ if (state.running) {
 
 let failedEmails = [];
 
-// ---------- Middleware ----------
 app.use(express.json());
 app.use(express.static('public'));
-
 const upload = multer({ dest: 'uploads/' });
 
-// ---------- Daily reset ----------
 function resetDailyCountersIfNeeded() {
   const today = new Date().toISOString().slice(0, 10);
   let changed = false;
@@ -86,15 +81,18 @@ function getBestInbox() {
 }
 
 async function sendEmail(inbox, lead, subject, template) {
+  // FIXED SMTP CONFIG (port 465, secure, longer timeouts)
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    port: 465,
+    secure: true,
     auth: {
       user: inbox.email,
       pass: inbox.password,
     },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
   });
 
   const body = template
@@ -175,7 +173,6 @@ async function runEmailBatch() {
 }
 
 // ---------- API Endpoints ----------
-
 app.post('/login', (req, res) => {
   const { password } = req.body;
   if (password === PASSWORD) return res.json({ success: true });
@@ -187,12 +184,15 @@ app.post('/add-inbox', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and App Password required' });
 
   try {
+    // FIXED SMTP CONFIG (same as sendEmail: port 465, secure, longer timeouts)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
+      port: 465,
+      secure: true,
       auth: { user: email, pass: password },
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
     });
     await transporter.verify();
 
