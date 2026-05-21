@@ -81,18 +81,15 @@ function getBestInbox() {
 }
 
 async function sendEmail(inbox, lead, subject, template) {
-  // FIXED SMTP CONFIG (port 465, secure, longer timeouts)
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: inbox.email,
       pass: inbox.password,
     },
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
   });
 
   const body = template
@@ -184,15 +181,12 @@ app.post('/add-inbox', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and App Password required' });
 
   try {
-    // FIXED SMTP CONFIG (same as sendEmail: port 465, secure, longer timeouts)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: { user: email, pass: password },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
     });
     await transporter.verify();
 
