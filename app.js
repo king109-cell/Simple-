@@ -81,11 +81,11 @@ function getBestInbox() {
 }
 
 async function sendEmail(inbox, lead, subject, template) {
+  // ✅ Using port 465 (SSL) – same as your SMTP test
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    port: 465,
+    secure: true,
     auth: {
       user: inbox.email,
       pass: inbox.password,
@@ -181,11 +181,11 @@ app.post('/add-inbox', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and App Password required' });
 
   try {
+    // ✅ Using port 465 (SSL) for verification – same as your SMTP test
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
+      port: 465,
+      secure: true,
       auth: { user: email, pass: password },
     });
     await transporter.verify();
