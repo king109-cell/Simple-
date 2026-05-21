@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const csv = require('csv-parser');
 const nodemailer = require('nodemailer');
+const net = require('net');
 const fs = require('fs');
 const path = require('path');
 
@@ -22,41 +23,46 @@ const INBOXES_FILE = path.join(__dirname, 'inboxes.json');
 const STATE_FILE = path.join(__dirname, 'state.json');
 
 function readJSON(file, defaultValue = []) {
-  try {
-    if (fs.existsSync(file)) {
-      return JSON.parse(fs.readFileSync(file, 'utf8'));
-    }
-  } catch (e) {
-    console.error(`Error reading ${file}:`, e.message);
-  }
+  try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {}
   return defaultValue;
 }
-
-function writeJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
+function writeJSON(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
 
 let leads = readJSON(LEADS_FILE);
 let inboxes = readJSON(INBOXES_FILE);
-
-let state = readJSON(STATE_FILE, {
-  running: false,
-  subject: '',
-  template: '',
-  batchSize: 10,
-});
-
-if (state.running) {
-  state.running = false;
-  writeJSON(STATE_FILE, state);
-}
-
+let state = readJSON(STATE_FILE, { running: false, subject: '', template: '', batchSize: 10 });
+if (state.running) { state.running = false; writeJSON(STATE_FILE, state); }
 let failedEmails = [];
 
 app.use(express.json());
 app.use(express.static('public'));
 const upload = multer({ dest: 'uploads/' });
 
+// ---------- TCP connectivity test ----------
+function testTCP(host, port, timeout = 10000) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(timeout);
+    socket.on('connect', () => { socket.destroy(); resolve(true); });
+    socket.on('error', () => { socket.destroy(); resolve(false); });
+    socket.on('timeout', () => { socket.destroy(); resolve(false); });
+    socket.connect(port, host);
+  });
+}
+
+// Diagnostic endpoint – open this in your browser
+app.get('/test-smtp', async (req, res) => {
+  const r587 = await testTCP('smtp.gmail.com', 587);
+  const r465 = await testTCP('smtp.gmail.com', 465);
+  res.json({
+    port_587: r587,
+    port_465: r465,
+    smtp_possible: r587 || r465,
+    message: (r587 || r465) ? 'At least one port works' : 'All SMTP ports blocked by host'
+  });
+});
+
+// ---------- Daily reset ----------
 function resetDailyCountersIfNeeded() {
   const today = new Date().toISOString().slice(0, 10);
   let changed = false;
@@ -67,9 +73,7 @@ function resetDailyCountersIfNeeded() {
       changed = true;
     }
   });
-  if (changed) {
-    writeJSON(INBOXES_FILE, inboxes);
-  }
+  if (changed) writeJSON(INBOXES_FILE, inboxes);
 }
 
 function getBestInbox() {
@@ -81,15 +85,11 @@ function getBestInbox() {
 }
 
 async function sendEmail(inbox, lead, subject, template) {
-  // ✅ Using port 465 (SSL) – same as your SMTP test
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
-    auth: {
-      user: inbox.email,
-      pass: inbox.password,
-    },
+    auth: { user: inbox.email, pass: inbox.password },
   });
 
   const body = template
@@ -132,16 +132,10 @@ async function runEmailBatch() {
   try {
     while (state.running && batchSent < batchSize) {
       const leadIndex = leads.findIndex(l => !l.sent);
-      if (leadIndex === -1) {
-        console.log('No more unsent leads.');
-        break;
-      }
+      if (leadIndex === -1) break;
       const lead = leads[leadIndex];
       const inbox = getBestInbox();
-      if (!inbox) {
-        console.error('All inboxes reached daily limit.');
-        break;
-      }
+      if (!inbox) break;
 
       try {
         await sendEmail(inbox, lead, subject, template);
@@ -156,7 +150,6 @@ async function runEmailBatch() {
       }
 
       if (batchSent >= batchSize) break;
-
       if (state.running && batchSent < batchSize && leads.some(l => !l.sent)) {
         await randomDelay();
       }
@@ -180,30 +173,55 @@ app.post('/add-inbox', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and App Password required' });
 
+  if (inboxes.find(i => i.email === email)) {
+    return res.status(400).json({ error: 'Inbox already added' });
+  }
+
+  // First, check which ports are actually reachable from this host
+  const canUse465 = await testTCP('smtp.gmail.com', 465);
+  const canUse587 = await testTCP('smtp.gmail.com', 587);
+
+  if (!canUse465 && !canUse587) {
+    // Both ports blocked – cannot verify, but add it anyway with a warning
+    inboxes.push({
+      email,
+      password,
+      sentToday: 0,
+      lastReset: new Date().toISOString().slice(0, 10),
+      verified: false,
+    });
+    writeJSON(INBOXES_FILE, inboxes);
+    return res.json({
+      success: true,
+      message: 'Inbox added but SMTP ports are blocked by this host. Emails cannot be sent from here. Try a different hosting platform.',
+    });
+  }
+
+  // Use the working port for verification
+  const portToUse = canUse465 ? 465 : 587;
+  const secure = portToUse === 465;
+
   try {
-    // ✅ Using port 465 (SSL) for verification – same as your SMTP test
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: portToUse,
+      secure,
+      requireTLS: !secure,
       auth: { user: email, pass: password },
     });
     await transporter.verify();
-
-    if (inboxes.find(i => i.email === email)) {
-      return res.status(400).json({ error: 'Inbox already added' });
-    }
 
     inboxes.push({
       email,
       password,
       sentToday: 0,
       lastReset: new Date().toISOString().slice(0, 10),
+      verified: true,
     });
     writeJSON(INBOXES_FILE, inboxes);
-    res.json({ success: true, message: 'Inbox added and verified' });
+    res.json({ success: true, message: `Inbox verified on port ${portToUse}` });
   } catch (err) {
-    res.status(400).json({ error: `SMTP verification failed: ${err.message}` });
+    res.status(400).json({ error: `Verification failed: ${err.message}. Port ${portToUse} was reachable but login failed. Check App Password.` });
   }
 });
 
