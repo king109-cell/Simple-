@@ -1,612 +1,813 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColdSend Pro</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0b0d;
-    --surface: #111318;
-    --surface2: #181b22;
-    --border: #1f2430;
-    --border2: #2a3040;
-    --accent: #00e5a0;
-    --accent2: #0099ff;
-    --accent3: #ff5757;
-    --text: #e8ecf0;
-    --text2: #7a8599;
-    --text3: #4a5568;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Syne', sans-serif;
-    --radius: 8px;
-    --glow: 0 0 20px rgba(0, 229, 160, 0.15);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    min-height: 100vh;
-    background-image: 
-      radial-gradient(ellipse at 20% 0%, rgba(0, 229, 160, 0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(0, 153, 255, 0.04) 0%, transparent 50%);
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cold Email Pro - Automation Tool</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  /* ── Login ── */
-  #login-screen {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 12px;
-    padding: 40px;
-    width: 360px;
-    text-align: center;
-  }
-  .login-logo {
-    font-family: var(--sans);
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--accent);
-    letter-spacing: -1px;
-    margin-bottom: 4px;
-  }
-  .login-sub { color: var(--text2); font-size: 12px; margin-bottom: 32px; }
-  .login-box input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 14px;
-    margin-bottom: 12px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .login-box input:focus { border-color: var(--accent); }
-  .btn-login {
-    width: 100%;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: var(--radius);
-    padding: 13px;
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: opacity 0.2s, transform 0.1s;
-  }
-  .btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-login:active { transform: translateY(0); }
-  #login-error { color: var(--accent3); font-size: 12px; margin-top: 8px; min-height: 16px; }
+    :root {
+      --primary: #0f172a;
+      --secondary: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --border: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --bg-hover: #1e293b;
+    }
 
-  /* ── App Shell ── */
-  #app { display: none; }
-  
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(17,19,24,0.9);
-    backdrop-filter: blur(10px);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-logo { font-family: var(--sans); font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
-  .header-logo span { color: var(--text2); font-weight: 400; }
-  .header-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--text2);
-  }
-  .status-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--text3);
-    transition: background 0.3s;
-  }
-  .status-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .btn-logout { background: transparent; border: 1px solid var(--border2); color: var(--text2); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-family: var(--mono); font-size: 11px; transition: all 0.2s; }
-  .btn-logout:hover { border-color: var(--accent3); color: var(--accent3); }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d1f2d 100%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
 
-  /* ── Layout ── */
-  .main-layout {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 0;
-    min-height: calc(100vh - 57px);
-  }
-  .sidebar {
-    border-right: 1px solid var(--border);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow-y: auto;
-    max-height: calc(100vh - 57px);
-  }
-  .main-content {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow-y: auto;
-    max-height: calc(100vh - 57px);
-  }
+    /* Login Screen */
+    .login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d1f2d 100%);
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-in;
+    }
 
-  /* ── Cards ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface2);
-  }
-  .card-title {
-    font-family: var(--sans);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text2);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .card-title .icon { font-size: 14px; }
-  .card-body { padding: 16px; }
-  .card-count {
-    font-size: 11px;
-    background: var(--border2);
-    color: var(--text2);
-    padding: 2px 8px;
-    border-radius: 20px;
-  }
+    .login-container.hidden {
+      display: none;
+    }
 
-  /* ── Form elements ── */
-  .field { margin-bottom: 10px; }
-  .field label { display: block; color: var(--text2); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
-  .field input, .field textarea, .field select {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 9px 12px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    resize: vertical;
-  }
-  .field input:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,160,0.1); }
-  .field textarea { line-height: 1.6; }
-  
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
 
-  /* ── Buttons ── */
-  .btn {
-    border: none;
-    border-radius: 6px;
-    padding: 8px 14px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-  }
-  .btn:hover { transform: translateY(-1px); opacity: 0.9; }
-  .btn:active { transform: translateY(0); }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: rgba(255,87,87,0.15); color: var(--accent3); border: 1px solid rgba(255,87,87,0.3); }
-  .btn-danger:hover { background: rgba(255,87,87,0.25); }
-  .btn-sm { padding: 4px 10px; font-size: 10px; }
-  .btn-full { width: 100%; text-align: center; }
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .login-box {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 48px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.4s ease-out;
+    }
 
-  /* ── Run/Stop big buttons ── */
-  .run-btn {
-    flex: 1;
-    padding: 14px;
-    font-family: var(--sans);
-    font-size: 15px;
-    font-weight: 700;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.5px;
-  }
-  .run-btn.start { background: var(--accent); color: #000; }
-  .run-btn.start:hover { box-shadow: var(--glow); transform: translateY(-1px); }
-  .run-btn.stop { background: rgba(255,87,87,0.2); color: var(--accent3); border: 1px solid rgba(255,87,87,0.4); }
-  .run-btn.stop:hover { background: rgba(255,87,87,0.3); }
-  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-  /* ── Progress ── */
-  .progress-bar-wrap {
-    background: var(--bg);
-    border-radius: 4px;
-    height: 4px;
-    overflow: hidden;
-    margin-top: 12px;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 4px;
-    transition: width 0.5s ease;
-    width: 0%;
-  }
-  .progress-text {
-    font-size: 11px;
-    color: var(--text2);
-    margin-top: 6px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .progress-big {
-    font-family: var(--sans);
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .progress-big span { color: var(--text3); font-size: 24px; }
+    .login-box h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
 
-  /* ── Inbox list ── */
-  .inbox-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 9px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 6px;
-    transition: border-color 0.2s;
-    gap: 8px;
-  }
-  .inbox-item:hover { border-color: var(--border2); }
-  .inbox-email { color: var(--text); font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .inbox-badge {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .inbox-badge.ok { background: rgba(0,229,160,0.1); color: var(--accent); }
-  .inbox-badge.warn { background: rgba(255,165,0,0.15); color: #ffa500; }
-  .inbox-badge.full { background: rgba(255,87,87,0.15); color: var(--accent3); }
-  .remove-btn {
-    background: transparent;
-    border: none;
-    color: var(--text3);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    transition: color 0.2s;
-    flex-shrink: 0;
-  }
-  .remove-btn:hover { color: var(--accent3); }
+    .login-box p {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
 
-  /* ── Lead list ── */
-  .lead-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 5px;
-    gap: 8px;
-  }
-  .lead-info { flex: 1; overflow: hidden; }
-  .lead-name { font-size: 11px; color: var(--text); }
-  .lead-email { font-size: 10px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lead-ice {
-    font-size: 10px;
-    color: var(--accent2);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-    margin-top: 1px;
-    font-style: italic;
-  }
+    .form-group {
+      margin-bottom: 20px;
+    }
 
-  /* ── Send log ── */
-  .log-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-  }
-  .log-item:last-child { border-bottom: none; }
-  .log-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .log-dot.sent { background: var(--accent); }
-  .log-dot.failed { background: var(--accent3); }
-  .log-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-  .log-via { color: var(--text3); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
-  .log-time { color: var(--text3); font-size: 10px; flex-shrink: 0; }
-  .log-status-sent { color: var(--accent); font-size: 10px; }
-  .log-status-failed { color: var(--accent3); font-size: 10px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-  /* ── Stats bar ── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-  .stat-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    text-align: center;
-  }
-  .stat-val { font-family: var(--sans); font-size: 24px; font-weight: 800; color: var(--text); }
-  .stat-val.green { color: var(--accent); }
-  .stat-val.blue { color: var(--accent2); }
-  .stat-val.red { color: var(--accent3); }
-  .stat-label { font-size: 10px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
 
-  /* ── Toast ── */
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    padding: 12px 18px;
-    font-size: 12px;
-    color: var(--text);
-    z-index: 9999;
-    transform: translateY(20px);
-    opacity: 0;
-    transition: all 0.25s;
-    max-width: 320px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  }
-  #toast.show { transform: translateY(0); opacity: 1; }
-  #toast.success { border-color: var(--accent); }
-  #toast.error { border-color: var(--accent3); color: var(--accent3); }
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
 
-  /* ── Misc ── */
-  .empty-state { color: var(--text3); font-size: 11px; text-align: center; padding: 20px 0; }
-  .section-actions { display: flex; gap: 6px; }
-  .tag { display: inline-block; background: rgba(0,229,160,0.1); color: var(--accent); font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+    textarea {
+      resize: vertical;
+      min-height: 180px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+    }
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    button {
+      padding: 12px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-  @media (max-width: 900px) {
-    .main-layout { grid-template-columns: 1fr; }
-    .sidebar { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
-    .main-content { max-height: none; }
-  }
-</style>
+    button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    button.success {
+      background: var(--success);
+    }
+
+    button.success:hover {
+      background: #059669;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Main App */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+
+    .app-container.hidden {
+      display: none;
+    }
+
+    .sidebar {
+      width: 320px;
+      background: var(--secondary);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .sidebar h2 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin: 24px 0 12px 0;
+    }
+
+    .sidebar h2:first-child {
+      margin-top: 0;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px;
+    }
+
+    .section {
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    .section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row.full {
+      flex-direction: column;
+    }
+
+    .form-group {
+      flex: 1;
+    }
+
+    .form-group.full {
+      flex: 1 1 100%;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .button-group button {
+      flex: 1;
+    }
+
+    /* Lists */
+    .list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--primary);
+    }
+
+    .list-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      gap: 12px;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-item.empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    .list-item-label {
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .list-item-badge {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .list-item-remove {
+      background: var(--danger);
+      padding: 6px 10px;
+      font-size: 12px;
+      min-width: fit-content;
+    }
+
+    .list-item-remove:hover {
+      background: #dc2626;
+    }
+
+    /* Progress */
+    .progress-container {
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Status Indicator */
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .status-badge.active {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    .status-badge.idle {
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--text-secondary);
+    }
+
+    /* File Upload */
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+
+    .file-input-label {
+      display: block;
+      padding: 12px 14px;
+      background: var(--primary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .file-input-label:hover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+      color: var(--text-primary);
+    }
+
+    /* Error Messages */
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .success-message {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 280px;
+        padding: 16px;
+      }
+
+      .main-content {
+        padding: 24px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 40vh;
+        overflow-x: auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+      }
+
+      .sidebar h2 {
+        flex-basis: 100%;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 16px;
+      }
+
+      .section {
+        margin-bottom: 16px;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
-
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">ColdSend <span style="color:var(--accent)">Pro</span></div>
-    <div class="login-sub">Cold Email Automation Dashboard</div>
-    <input type="password" id="pw-input" placeholder="Enter password" autocomplete="current-password">
-    <button class="btn-login" onclick="doLogin()">Access Dashboard →</button>
-    <div id="login-error"></div>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-  <header>
-    <div class="header-logo">ColdSend <span>Pro</span></div>
-    <div class="header-status">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="status-label">Idle</span>
+  <!-- Login Screen -->
+  <div class="login-container" id="loginContainer">
+    <div class="login-box">
+      <h1>Cold Email Pro</h1>
+      <p>Secure access to your email automation tool</p>
+      <div class="form-group">
+        <label for="passwordInput">Master Password</label>
+        <input 
+          type="password" 
+          id="passwordInput" 
+          placeholder="Enter your password"
+          autocomplete="current-password"
+        >
+      </div>
+      <div id="loginError" class="error-message" style="display: none;"></div>
+      <button onclick="login()" style="width: 100%;">LOGIN</button>
     </div>
-    <button class="btn-logout" onclick="doLogout()">Logout</button>
-  </header>
+  </div>
 
-  <div class="main-layout">
-
-    <!-- SIDEBAR -->
+  <!-- Main App -->
+  <div class="app-container hidden" id="appContainer">
+    <!-- Sidebar -->
     <div class="sidebar">
+      <h2>📊 Status</h2>
+      <div class="status-badge idle" id="statusBadge">Idle</div>
+      
+      <h2>📈 Progress</h2>
+      <div style="font-size: 24px; font-weight: 700; color: var(--accent);" id="progressCounter">0/0</div>
+      
+      <h2>📬 Inboxes</h2>
+      <div class="list" id="inboxList">
+        <div class="list-item empty">No inboxes</div>
+      </div>
 
-      <!-- Inboxes -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><span class="icon">📬</span> Inboxes</div>
-          <div class="section-actions">
-            <span class="card-count" id="inbox-count">0</span>
-            <button class="btn btn-danger btn-sm" onclick="clearInboxes()">Clear</button>
+      <h2>📋 Leads</h2>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;" id="leadsCount">0</div>
+      <div class="list" id="leadsList" style="max-height: 200px;">
+        <div class="list-item empty">No leads uploaded</div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Inbox Management -->
+      <div class="section">
+        <h3>📧 Inbox Management</h3>
+        <p class="section-subtitle">Add Gmail accounts with App Passwords to send from multiple inboxes</p>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="emailInput">Gmail Address</label>
+            <input type="email" id="emailInput" placeholder="your-email@gmail.com">
+          </div>
+          <div class="form-group">
+            <label for="appPasswordInput">App Password</label>
+            <input type="password" id="appPasswordInput" placeholder="16-character app password">
           </div>
         </div>
-        <div class="card-body">
-          <div class="field-row">
-            <div class="field" style="margin-bottom:0">
-              <label>Gmail Address</label>
-              <input type="email" id="inbox-email" placeholder="you@gmail.com">
-            </div>
-            <div class="field" style="margin-bottom:0">
-              <label>App Password</label>
-              <input type="password" id="inbox-pass" placeholder="xxxx xxxx xxxx xxxx">
-            </div>
-          </div>
-          <div style="margin-top:8px">
-            <button class="btn btn-primary btn-full" onclick="addInbox()" id="add-inbox-btn">+ Add & Verify Inbox</button>
-          </div>
-          <div id="inbox-list" style="margin-top:12px"></div>
+        
+        <div id="inboxError" class="error-message" style="display: none;"></div>
+        <div id="inboxSuccess" class="success-message" style="display: none;"></div>
+        
+        <div class="button-group">
+          <button onclick="addInbox()">Add Inbox</button>
+          <button class="danger" onclick="clearInboxes()">Clear All</button>
         </div>
       </div>
 
       <!-- Leads Upload -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><span class="icon">👥</span> Leads</div>
-          <div class="section-actions">
-            <span class="card-count" id="leads-count">0</span>
-            <button class="btn btn-danger btn-sm" onclick="clearLeads()">Clear</button>
-          </div>
+      <div class="section">
+        <h3>📥 Upload Leads</h3>
+        <p class="section-subtitle">CSV format with 'name' and 'email' columns</p>
+        
+        <div class="file-input-wrapper">
+          <input type="file" id="csvFile" accept=".csv">
+          <label for="csvFile" class="file-input-label">
+            Drag & drop CSV here or click to browse
+          </label>
         </div>
-        <div class="card-body">
-          <div class="field">
-            <label>Upload CSV <span class="tag">name, email, icebreaker</span></label>
-            <input type="file" id="csv-file" accept=".csv" style="padding:6px">
-          </div>
-          <button class="btn btn-secondary btn-full" onclick="uploadCSV()">↑ Upload CSV</button>
-          <div style="margin-top:4px; font-size:10px; color:var(--text3)">
-            CSV columns: <code>name</code>, <code>email</code>, <code>icebreaker</code>
-          </div>
-          <div id="leads-list" style="margin-top:12px"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-
-      <!-- Stats Row -->
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-val green" id="stat-sent">0</div>
-          <div class="stat-label">Sent Today</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val blue" id="stat-leads">0</div>
-          <div class="stat-label">Leads Remaining</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val red" id="stat-failed">0</div>
-          <div class="stat-label">Failed</div>
+        
+        <div id="uploadError" class="error-message" style="display: none; margin-top: 12px;"></div>
+        <div id="uploadSuccess" class="success-message" style="display: none; margin-top: 12px;"></div>
+        
+        <div class="button-group" style="margin-top: 12px;">
+          <button onclick="uploadLeads()">Upload CSV</button>
+          <button class="danger" onclick="clearLeads()">Clear Leads</button>
         </div>
       </div>
 
-      <!-- Composer -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><span class="icon">✍️</span> Email Composer</div>
-          <button class="btn btn-secondary btn-sm" onclick="clearTemplate()">Clear</button>
+      <!-- Email Composer -->
+      <div class="section">
+        <h3>✍️ Email Composer</h3>
+        <p class="section-subtitle">Use {{name}} and {{icebreaker}} as variables</p>
+        
+        <div class="form-group full">
+          <label for="subjectInput">Email Subject</label>
+          <input type="text" id="subjectInput" placeholder="Quick question about {{name}}'s work">
         </div>
-        <div class="card-body">
-          <div class="field">
-            <label>Subject Line</label>
-            <input type="text" id="email-subject" placeholder="Quick question, {{name}}..." oninput="saveTemplate()">
-          </div>
-          <div class="field">
-            <label>Email Template — use <span class="tag">{{name}}</span> <span class="tag">{{icebreaker}}</span></label>
-            <textarea id="email-template" rows="8" placeholder="Hi {{name}},&#10;&#10;{{icebreaker}}&#10;&#10;I wanted to reach out because..." oninput="saveTemplate()"></textarea>
-          </div>
+
+        <div class="form-group full">
+          <label for="templateInput">Email Body</label>
+          <textarea id="templateInput" placeholder="Hi {{name}},
+
+{{icebreaker}} - I saw your work and thought you'd find this relevant...
+
+Best regards"></textarea>
         </div>
+
+        <button onclick="saveTemplate()">Save to Local Storage</button>
       </div>
 
-      <!-- Controls -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><span class="icon">🚀</span> Launch</div>
+      <!-- Batch Control -->
+      <div class="section">
+        <h3>⚡ Batch Control</h3>
+        <p class="section-subtitle">Configure and launch your email campaign</p>
+        
+        <div class="form-group">
+          <label for="batchSizeInput">Batch Size (emails)</label>
+          <input type="number" id="batchSizeInput" value="10" min="1" max="30">
         </div>
-        <div class="card-body">
-          <div class="field" style="margin-bottom:14px">
-            <label>Batch Size (emails to send this run)</label>
-            <input type="number" id="batch-size" value="10" min="1" max="200" style="width:120px">
+
+        <div class="progress-container" id="progressContainer" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
           </div>
-          <div style="display:flex; gap:12px; margin-bottom:14px">
-            <button class="run-btn start" id="run-btn" onclick="runSend()">▶ START SENDING</button>
-            <button class="run-btn stop" id="stop-btn" onclick="stopSend()" disabled>■ STOP</button>
+          <div class="progress-text">
+            <span>Sending progress</span>
+            <span id="progressPercent">0%</span>
           </div>
-          <div id="progress-wrap" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
-            <div class="progress-text">
-              <span id="progress-label">Preparing...</span>
-              <span id="progress-pct">0%</span>
-            </div>
-          </div>
-          <div id="delay-info" style="display:none; margin-top:8px; font-size:10px; color:var(--text3)">
-            ⏱ 30–90 second random delay between emails to protect deliverability
-          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="success" onclick="startSending()">RUN CAMPAIGN</button>
+          <button class="danger" onclick="stopSending()">STOP</button>
         </div>
       </div>
-
-      <!-- Send Log -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><span class="icon">📋</span> Activity Log</div>
-          <span class="card-count" id="log-count">0</span>
-        </div>
-        <div id="send-log">
-          <div class="empty-state">No activity yet — start sending to see logs</div>
-        </div>
-      </div>
-
     </div>
   </div>
-</div>
 
-<div id="toast"></div>
+  <script>
+    const API_BASE = '/';
 
-<script>
-// ── Auth ──────────────────────────────────────────────────────────────────────
-let token = '';
-let refreshInterval = null;
+    // Auto-refresh every 3 seconds
+    let statusInterval = null;
 
-function doLogin() {
-  const pw = document.getElementById('pw-input').value;
-  fetch('/login', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({password: pw})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      token = d.token;
-      sessionStorage.setItem('csp_token', token);
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      initApp();
-    } else {
-      document.getElementById('login-error').textContent = 'Wrong password';
+    async function login() {
+      const password = document.getElementById('passwordInput').value;
+      const errorDiv = document.getElementById('loginError');
+
+      if (!password) {
+        errorDiv.textContent = 'Please enter a password';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (response.ok) {
+          document.getElementById('loginContainer').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          loadTemplate();
+          startStatusRefresh();
+        } else {
+          errorDiv.textContent = 'Invalid password';
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+      }
     }
-  })
-  .catch(() => document.getElementById('login-error').textConte
+
+    async function addInbox() {
+      const email = document.getElementById('emailInput').value;
+      const appPassword = document.getElementById('appPasswordInput').value;
+      const errorDiv = document.getElementById('inboxError');
+      const successDiv = document.getElementById('inboxSuccess');
+
+      if (!email || !appPassword) {
+        showError(errorDiv, 'Please fill in all fields');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}add-inbox`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, appPassword })
+        });
+
+        if (response.ok) {
+          showSuccess(successDiv, 'Inbox added successfully!');
+          document.getElementById('emailInput').value = '';
+          document.getElementById('appPasswordInput').value = '';
+          updateStatus();
+        } else {
+          const data = await response.json();
+          showError(errorDiv, data.error);
+        }
+      } catch (error) {
+        showError(errorDiv, error.message);
+      }
+    }
+
+    async function clearInboxes() {
+      if (!confirm('Clear all inboxes?')) return;
+
+      try {
+        const response = await fetch(`${API_BASE}clear-inboxes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          updateStatus();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function uploadLeads() {
+      const fileInput = document.getElementById('csvFile');
+      const errorDiv = document.getElementById('uploadError');
+      const successDiv = document.getElementById('uploadSuccess');
+
+      if (!fileInput.files.length) {
+        showError(errorDiv, 'Please select a CSV file');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch(`${API_BASE}upload-leads`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          showSuccess(successDiv, `Uploaded ${data.count} leads!`);
+          fileInput.value = '';
+          updateStatus();
+        } else {
+          const data = await response.json();
+          showError(errorDiv, data.error);
+        }
+      } catch (error) {
+        showError(errorDiv, error.message);
+      }
+    }
+
+    async function clearLeads() {
+      if (!confirm('Clear all leads?')) return;
+
+      try {
+        const response = await fetch(`${API_BASE}clear-leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          updateStatus();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function removeInbox(index) {
+      try {
+        await fetch(`${API_BASE}remove-inbox`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ index })
+        });
+        updateStatus();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function removeLead(index) {
+      try {
+        await fetch(`${API_BASE}remove-lead`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ index })
+        });
+        updateStatus();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function sav
