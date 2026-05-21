@@ -1,293 +1,333 @@
-const express = require("express");
-const fs = require("fs");
-const multer = require("multer");
-const csv = require("csv-parser");
-const nodemailer = require("nodemailer");
+const express = require('express');
+const multer = require('multer');
+const csv = require('csv-parser');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;          // ← dynamic port for Render
+const PASSWORD = 'dwarkadhishxvivek';
+const DAILY_LIMIT = 30;
+const MIN_DELAY = 30000; // 30 seconds
+const MAX_DELAY = 90000; // 90 seconds
+const MAX_RETRIES = 3;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
+// Ensure required directories exist
+['uploads', 'public'].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
 
-const LOGIN_PASSWORD = "dwarkadhishxvivek";
+const LEADS_FILE = path.join(__dirname, 'leads.json');
+const INBOXES_FILE = path.join(__dirname, 'inboxes.json');
+const STATE_FILE = path.join(__dirname, 'state.json');
 
-const LEADS_FILE = "leads.json";
-const INBOXES_FILE = "inboxes.json";
-
-if (!fs.existsSync(LEADS_FILE)) fs.writeFileSync(LEADS_FILE, "[]");
-if (!fs.existsSync(INBOXES_FILE)) fs.writeFileSync(INBOXES_FILE, "[]");
-if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
-
-const upload = multer({ dest: "uploads/" });
-
-let state = {
-  running: false,
-  sent: 0,
-  batch: 10,
-  subject: "",
-  template: ""
-};
-
-// ---------- HELPERS ----------
-function read(file) {
+// ---------- Data helpers ----------
+function readJSON(file, defaultValue = []) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch {
-    return [];
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    }
+  } catch (e) {
+    console.error(`Error reading ${file}:`, e.message);
   }
+  return defaultValue;
 }
 
-function write(file, data) {
+function writeJSON(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-function delay(ms) {
-  return new Promise(r => setTimeout(r, ms));
+let leads = readJSON(LEADS_FILE);
+let inboxes = readJSON(INBOXES_FILE);
+
+let state = readJSON(STATE_FILE, {
+  running: false,
+  subject: '',
+  template: '',
+  batchSize: 10,
+});
+// Force running to false after a restart
+if (state.running) {
+  state.running = false;
+  writeJSON(STATE_FILE, state);
 }
 
-function randomDelay() {
-  return Math.floor(Math.random() * (90000 - 30000 + 1)) + 30000;
+let failedEmails = [];
+
+// ---------- Middleware ----------
+app.use(express.json());
+app.use(express.static('public'));
+
+const upload = multer({ dest: 'uploads/' });
+
+// ---------- Daily reset ----------
+function resetDailyCountersIfNeeded() {
+  const today = new Date().toISOString().slice(0, 10);
+  let changed = false;
+  inboxes.forEach(inbox => {
+    if (!inbox.lastReset || inbox.lastReset !== today) {
+      inbox.sentToday = 0;
+      inbox.lastReset = today;
+      changed = true;
+    }
+  });
+  if (changed) {
+    writeJSON(INBOXES_FILE, inboxes);
+  }
 }
 
-// ---------- CORE DATA ----------
-const getLeads = () => read(LEADS_FILE);
-const saveLeads = (d) => write(LEADS_FILE, d);
-
-const getInboxes = () => read(INBOXES_FILE);
-const saveInboxes = (d) => write(INBOXES_FILE, d);
-
-// ---------- INBOX ROTATION ----------
 function getBestInbox() {
-  const inboxes = getInboxes();
-
-  const valid = inboxes.filter(i => i.sentToday < 30);
-
-  if (!valid.length) return null;
-
-  valid.sort((a, b) => a.sentToday - b.sentToday);
-
-  return valid[0];
+  resetDailyCountersIfNeeded();
+  const eligible = inboxes.filter(i => i.sentToday < DAILY_LIMIT);
+  if (eligible.length === 0) return null;
+  eligible.sort((a, b) => a.sentToday - b.sentToday);
+  return eligible[0];
 }
 
-// ---------- EMAIL ----------
 async function sendEmail(inbox, lead, subject, template) {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host: 'smtp.gmail.com',
     port: 587,
     secure: false,
     requireTLS: true,
     auth: {
       user: inbox.email,
-      pass: inbox.password
-    }
+      pass: inbox.password,
+    },
   });
 
-  const html = template
-    .replace(/{{name}}/g, lead.name || "")
-    .replace(/{{icebreaker}}/g, lead.icebreaker || "");
+  const body = template
+    .replace(/{{name}}/g, lead.name || '')
+    .replace(/{{icebreaker}}/g, lead.icebreaker || '');
 
-  await transporter.sendMail({
+  const mailOptions = {
     from: inbox.email,
     to: lead.email,
-    subject,
-    html
-  });
+    subject: subject,
+    text: body,
+  };
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await transporter.sendMail(mailOptions);
+      return true;
+    } catch (err) {
+      console.error(`Attempt ${attempt} failed for ${lead.email}: ${err.message}`);
+      if (attempt === MAX_RETRIES) throw err;
+    }
+  }
 }
 
-// ---------- SENDING ENGINE ----------
-async function startSending() {
+function randomDelay() {
+  const ms = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1)) + MIN_DELAY;
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  console.log("START SENDING TRIGGERED");
+async function runEmailBatch() {
+  if (state.running) return;
+  state.running = true;
+  writeJSON(STATE_FILE, state);
 
-  while (state.running) {
+  let batchSent = 0;
+  const batchSize = state.batchSize;
+  const subject = state.subject;
+  const template = state.template;
 
-    const leads = getLeads();
-
-    if (!leads.length) {
-      console.log("NO LEADS LEFT");
-      state.running = false;
-      break;
-    }
-
-    if (state.sent >= state.batch) {
-      console.log("BATCH COMPLETE");
-      state.running = false;
-      break;
-    }
-
-    const lead = leads[0];
-
-    if (!lead || !lead.email) {
-      leads.shift();
-      saveLeads(leads);
-      continue;
-    }
-
-    const inbox = getBestInbox();
-
-    if (!inbox) {
-      console.log("NO INBOX AVAILABLE");
-      state.running = false;
-      break;
-    }
-
-    let success = false;
-
-    for (let i = 1; i <= 3; i++) {
-      try {
-
-        console.log(`SENDING TO ${lead.email} (TRY ${i})`);
-
-        await sendEmail(inbox, lead, state.subject, state.template);
-
-        console.log("SENT SUCCESS:", lead.email);
-
-        inbox.sentToday += 1;
-
-        const inboxes = getInboxes().map(x =>
-          x.email === inbox.email ? inbox : x
-        );
-
-        saveInboxes(inboxes);
-
-        leads.shift();
-        saveLeads(leads);
-
-        state.sent++;
-
-        success = true;
+  try {
+    while (state.running && batchSent < batchSize) {
+      const leadIndex = leads.findIndex(l => !l.sent);
+      if (leadIndex === -1) {
+        console.log('No more unsent leads.');
         break;
+      }
+      const lead = leads[leadIndex];
+      const inbox = getBestInbox();
+      if (!inbox) {
+        console.error('All inboxes reached daily limit.');
+        break;
+      }
 
+      try {
+        await sendEmail(inbox, lead, subject, template);
+        leads[leadIndex].sent = true;
+        writeJSON(LEADS_FILE, leads);
+        inbox.sentToday = (inbox.sentToday || 0) + 1;
+        writeJSON(INBOXES_FILE, inboxes);
+        batchSent++;
       } catch (err) {
+        console.error(`Failed to send to ${lead.email}:`, err.message);
+        failedEmails.push({ email: lead.email, error: err.message, time: new Date().toISOString() });
+      }
 
-        console.log("EMAIL ERROR:", err.message);
+      if (batchSent >= batchSize) break;
 
-        if (i === 3) {
-          console.log("FAILED FINAL:", lead.email);
-
-          leads.shift();
-          saveLeads(leads);
-        }
-
-        await delay(3000);
+      if (state.running && batchSent < batchSize && leads.some(l => !l.sent)) {
+        await randomDelay();
       }
     }
-
-    if (!state.running) break;
-
-    await delay(randomDelay());
+  } catch (err) {
+    console.error('Unexpected error:', err);
+  } finally {
+    state.running = false;
+    writeJSON(STATE_FILE, state);
   }
-
-  state.running = false;
 }
 
-// ---------- AUTH ----------
-app.post("/login", (req, res) => {
-  if (req.body.password === LOGIN_PASSWORD) {
-    return res.json({ success: true });
-  }
-  res.status(401).json({ success: false });
+// ---------- API Endpoints ----------
+
+app.post('/login', (req, res) => {
+  const { password } = req.body;
+  if (password === PASSWORD) return res.json({ success: true });
+  res.status(401).json({ error: 'Incorrect password' });
 });
 
-// ---------- INBOX ----------
-app.post("/add-inbox", async (req, res) => {
+app.post('/add-inbox', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and App Password required' });
+
   try {
-
-    const { email, password } = req.body;
-
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: 'smtp.gmail.com',
       port: 587,
       secure: false,
       requireTLS: true,
-      auth: { user: email, pass: password }
+      auth: { user: email, pass: password },
     });
-
     await transporter.verify();
 
-    const inboxes = getInboxes();
-
     if (inboxes.find(i => i.email === email)) {
-      return res.json({ success: false, message: "Already exists" });
+      return res.status(400).json({ error: 'Inbox already added' });
     }
 
     inboxes.push({
       email,
       password,
       sentToday: 0,
-      lastReset: new Date().toDateString()
+      lastReset: new Date().toISOString().slice(0, 10),
     });
-
-    saveInboxes(inboxes);
-
-    res.json({ success: true });
-
+    writeJSON(INBOXES_FILE, inboxes);
+    res.json({ success: true, message: 'Inbox added and verified' });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(400).json({ error: `SMTP verification failed: ${err.message}` });
   }
 });
 
-// ---------- LEADS ----------
-app.post("/upload-leads", upload.single("file"), (req, res) => {
+app.post('/remove-inbox', (req, res) => {
+  const { index } = req.body;
+  if (typeof index !== 'number' || index < 0 || index >= inboxes.length)
+    return res.status(400).json({ error: 'Invalid index' });
+  inboxes.splice(index, 1);
+  writeJSON(INBOXES_FILE, inboxes);
+  res.json({ success: true });
+});
+
+app.post('/clear-inboxes', (req, res) => {
+  inboxes = [];
+  writeJSON(INBOXES_FILE, inboxes);
+  res.json({ success: true });
+});
+
+app.post('/upload-leads', upload.single('csvfile'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No CSV file' });
 
   const results = [];
-
   fs.createReadStream(req.file.path)
     .pipe(csv())
-    .on("data", row => {
-      if (row.email) {
+    .on('data', (row) => {
+      if (row.name && row.email) {
         results.push({
-          name: row.name || "",
-          email: row.email,
-          icebreaker: row.icebreaker || ""
+          name: row.name.trim(),
+          email: row.email.trim(),
+          icebreaker: row.icebreaker ? row.icebreaker.trim() : '',
+          sent: false,
         });
       }
     })
-    .on("end", () => {
-      const leads = getLeads();
-      saveLeads([...leads, ...results]);
-      fs.unlinkSync(req.file.path);
-      res.json({ success: true, count: results.length });
+    .on('end', () => {
+      leads = leads.concat(results);
+      writeJSON(LEADS_FILE, leads);
+      fs.unlink(req.file.path, () => {});
+      res.json({ success: true, added: results.length, total: leads.length });
+    })
+    .on('error', (err) => {
+      res.status(500).json({ error: 'CSV parsing error: ' + err.message });
     });
 });
 
-// ---------- RUN ----------
-app.post("/run", async (req, res) => {
+app.post('/remove-lead', (req, res) => {
+  const { index } = req.body;
+  if (typeof index !== 'number' || index < 0 || index >= leads.length)
+    return res.status(400).json({ error: 'Invalid index' });
+  leads.splice(index, 1);
+  writeJSON(LEADS_FILE, leads);
+  res.json({ success: true });
+});
 
-  if (state.running) {
-    return res.json({ success: false, message: "Already running" });
-  }
+app.post('/clear-leads', (req, res) => {
+  leads = [];
+  writeJSON(LEADS_FILE, leads);
+  failedEmails = [];
+  res.json({ success: true });
+});
 
+app.post('/run', (req, res) => {
+  if (state.running) return res.status(400).json({ error: 'Already running' });
+  const { subject, template, batchCount } = req.body;
+  if (!subject || !template) return res.status(400).json({ error: 'Subject and template required' });
+  const batch = parseInt(batchCount) || 10;
+  if (batch < 1) return res.status(400).json({ error: 'Batch count must be at least 1' });
+
+  state.subject = subject;
+  state.template = template;
+  state.batchSize = batch;
   state.running = true;
-  state.sent = 0;
-  state.subject = req.body.subject;
-  state.template = req.body.template;
-  state.batch = Number(req.body.batch || 10);
+  writeJSON(STATE_FILE, state);
 
-  startSending();
-
-  res.json({ success: true });
+  runEmailBatch().catch(err => console.error('Batch failed:', err));
+  res.json({ success: true, message: 'Sending started' });
 });
 
-app.post("/stop", (req, res) => {
+app.post('/stop', (req, res) => {
+  if (!state.running) return res.status(400).json({ error: 'Not running' });
   state.running = false;
-  res.json({ success: true });
+  writeJSON(STATE_FILE, state);
+  res.json({ success: true, message: 'Sending stopped' });
 });
 
-// ---------- STATUS ----------
-app.get("/status", (req, res) => {
+app.get('/status', (req, res) => {
+  resetDailyCountersIfNeeded();
+  const sentCount = leads.filter(l => l.sent).length;
+  const totalLeads = leads.length;
+
+  const inboxList = inboxes.map((ib, idx) => ({
+    index: idx,
+    email: ib.email,
+    sentToday: ib.sentToday || 0,
+  }));
+
+  const leadList = leads.slice(0, 50).map((l, idx) => ({
+    index: idx,
+    name: l.name,
+    email: l.email,
+    icebreaker: l.icebreaker,
+    sent: l.sent,
+  }));
+
   res.json({
     running: state.running,
-    sent: state.sent,
-    total: getLeads().length,
-    inboxes: getInboxes(),
-    leads: getLeads().slice(0, 10)
+    sentCount,
+    totalLeads,
+    subject: state.subject,
+    template: state.template,
+    batchSize: state.batchSize,
+    inboxes: inboxList,
+    leads: leadList,
+    totalLeadsCount: totalLeads,
+    failedEmails: failedEmails.slice(-20),
   });
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on", PORT);
+  console.log(`Cold Email Tool running on port ${PORT}`);
 });
