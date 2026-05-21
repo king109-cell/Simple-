@@ -166,8 +166,6 @@ async function startSending() {
       break;
     }
 
-    let success = false;
-
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         await sendEmail(
@@ -176,8 +174,6 @@ async function startSending() {
           state.subject,
           state.template
         );
-
-        success = true;
 
         inbox.sentToday += 1;
 
@@ -195,8 +191,11 @@ async function startSending() {
         console.log(`Sent to ${lead.email}`);
 
         break;
+
       } catch (err) {
-        console.log(`Attempt ${attempt} failed:`, err.message);
+
+        console.log(`Attempt ${attempt} failed`);
+        console.log(err);
 
         if (attempt === 3) {
           state.failed.push({
@@ -219,7 +218,14 @@ async function startSending() {
 
     console.log(`Waiting ${wait / 1000}s`);
 
-    await delay(wait);
+    for (let i = 0; i < wait / 1000; i++) {
+
+      if (!state.running) {
+        break;
+      }
+
+      await delay(1000);
+    }
   }
 
   state.running = false;
@@ -240,6 +246,7 @@ app.post("/login", (req, res) => {
 
 app.post("/add-inbox", async (req, res) => {
   try {
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -280,14 +287,23 @@ app.post("/add-inbox", async (req, res) => {
 
     saveInboxes(inboxes);
 
+    console.log("Inbox added successfully:", email);
+
     res.json({
       success: true,
       message: "Inbox added successfully"
     });
+
   } catch (err) {
+
+    console.log("========== SMTP ERROR ==========");
+    console.log(err);
+    console.log("================================");
+
     res.status(500).json({
       success: false,
-      message: err.message
+      message: err.message,
+      fullError: JSON.stringify(err, null, 2)
     });
   }
 });
@@ -311,20 +327,33 @@ app.post("/clear-inboxes", (req, res) => {
 });
 
 app.post("/upload-leads", upload.single("file"), (req, res) => {
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "CSV file required"
+    });
+  }
+
   const results = [];
 
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on("data", data => {
+
       if (data.email) {
+
         results.push({
+          id: Date.now() + Math.random().toString(36),
           name: data.name || "",
           email: data.email || "",
           icebreaker: data.icebreaker || ""
         });
       }
     })
+
     .on("end", () => {
+
       const leads = getLeads();
 
       saveLeads([...leads, ...results]);
@@ -339,11 +368,14 @@ app.post("/upload-leads", upload.single("file"), (req, res) => {
 });
 
 app.post("/remove-lead", (req, res) => {
-  const { index } = req.body;
+
+  const { id } = req.body;
 
   let leads = getLeads();
 
-  leads.splice(index, 1);
+  leads = leads.filter(
+    lead => lead.id !== id
+  );
 
   saveLeads(leads);
 
@@ -357,6 +389,7 @@ app.post("/clear-leads", (req, res) => {
 });
 
 app.post("/run", async (req, res) => {
+
   if (state.running) {
     return res.status(400).json({
       success: false,
