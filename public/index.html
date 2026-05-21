@@ -4,352 +4,381 @@
   <title>Cold Email Tool Pro</title>
 
   <style>
-    body {
+    body{
       font-family: Arial;
-      padding: 20px;
-      max-width: 1000px;
+      max-width: 1200px;
       margin: auto;
+      padding: 20px;
       background: #f5f5f5;
     }
 
-    .box {
+    .card{
       background: white;
       padding: 20px;
       margin-bottom: 20px;
       border-radius: 10px;
     }
 
-    input, textarea, button {
+    input, textarea, button{
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 10px;
       box-sizing: border-box;
     }
 
-    button {
+    button{
       cursor: pointer;
     }
 
-    ul {
-      padding-left: 20px;
+    ul{
+      list-style: none;
+      padding: 0;
     }
 
-    .row {
+    li{
+      background: #eee;
+      padding: 10px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 5px;
+    }
+
+    .hidden{
+      display: none;
+    }
+
+    .row{
       display: flex;
       gap: 10px;
     }
 
-    .row button {
-      width: auto;
+    .row > *{
+      flex: 1;
     }
 
-    #app {
-      display: none;
+    #status{
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .success{
+      color: green;
+    }
+
+    .error{
+      color: red;
     }
   </style>
 </head>
 
 <body>
 
-<div class="box" id="loginBox">
+<div class="card" id="loginSection">
   <h2>Login</h2>
 
   <input type="password" id="loginPassword" placeholder="Password">
 
-  <button type="button" onclick="login()">Login</button>
+  <button onclick="login()">Login</button>
+
+  <p id="loginMsg"></p>
 </div>
 
-<div id="app">
+<div id="app" class="hidden">
 
-  <div class="box">
+  <div class="card">
     <h2>Leads</h2>
 
     <input type="file" id="csvFile">
 
     <div class="row">
-      <button type="button" onclick="uploadCSV()">Upload CSV</button>
-      <button type="button" onclick="clearLeads()">Clear Leads</button>
+      <button onclick="uploadCSV()">Upload CSV</button>
+      <button onclick="clearLeads()">Clear Leads</button>
     </div>
 
     <ul id="leadList"></ul>
   </div>
 
-  <div class="box">
-    <h2>Inboxes</h2>
+  <div class="card">
+    <h2>Inbox Management</h2>
 
     <input type="email" id="inboxEmail" placeholder="Gmail">
 
     <input type="password" id="inboxPassword" placeholder="App Password">
 
     <div class="row">
-      <button type="button" onclick="addInbox()">Add Inbox</button>
-      <button type="button" onclick="clearInboxes()">Clear All</button>
+      <button onclick="addInbox()">Add Inbox</button>
+      <button onclick="clearInboxes()">Clear All</button>
     </div>
+
+    <p id="inboxMsg"></p>
 
     <ul id="inboxList"></ul>
   </div>
 
-  <div class="box">
+  <div class="card">
     <h2>Email Composer</h2>
 
     <input type="text" id="subject" placeholder="Subject">
 
-    <textarea id="template" style="height:200px;" placeholder="Use {{name}} and {{icebreaker}}"></textarea>
+    <textarea
+      id="template"
+      placeholder="Use {{name}} and {{icebreaker}}"
+      style="height:200px"
+    ></textarea>
 
-    <div class="row">
-      <button type="button" onclick="saveTemplate()">Save Template</button>
-      <button type="button" onclick="clearTemplate()">Clear Template</button>
-    </div>
+    <button onclick="clearTemplate()">Clear Template</button>
   </div>
 
-  <div class="box">
-    <h2>Control</h2>
+  <div class="card">
+    <h2>Controls</h2>
 
-    <input type="number" id="batch" value="10" placeholder="Batch Size">
+    <input type="number" id="batch" value="10">
 
     <div class="row">
-      <button type="button" onclick="runSender()">RUN</button>
-      <button type="button" onclick="stopSender()">STOP</button>
+      <button onclick="runEmails()">RUN</button>
+      <button onclick="stopEmails()">STOP</button>
     </div>
 
-    <h3 id="progress">0/0</h3>
+    <p id="status">0/0</p>
   </div>
 
 </div>
 
 <script>
 
-async function login() {
+async function login(){
   const password = document.getElementById("loginPassword").value;
 
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
     },
-    body: JSON.stringify({ password })
+    body:JSON.stringify({password})
   });
 
-  if (res.ok) {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").style.display = "block";
+  const data = await res.json();
+
+  if(data.success){
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
 
     loadTemplate();
-
     refreshStatus();
-  } else {
-    alert("Wrong password");
+    setInterval(refreshStatus,3000);
+  }else{
+    document.getElementById("loginMsg").innerHTML =
+      `<span class="error">${data.message}</span>`;
   }
 }
 
-async function uploadCSV() {
+async function uploadCSV(){
   const file = document.getElementById("csvFile").files[0];
 
-  if (!file) {
-    alert("Please select CSV file");
+  if(!file){
+    alert("Select CSV");
     return;
   }
 
   const formData = new FormData();
+  formData.append("file",file);
 
-  formData.append("file", file);
+  const res = await fetch("/upload-leads",{
+    method:"POST",
+    body:formData
+  });
 
-  try {
+  const data = await res.json();
 
-    const res = await fetch("/upload-leads", {
-      method: "POST",
-      body: formData
-    });
+  alert(`Uploaded ${data.count} leads`);
 
-    const data = await res.json();
-
-    alert(`Uploaded ${data.total} leads`);
-
-    refreshStatus();
-
-  } catch (err) {
-    console.error(err);
-    alert("Error uploading CSV");
-  }
+  refreshStatus();
 }
 
-async function clearLeads() {
-  await fetch("/clear-leads", {
-    method: "POST"
+async function clearLeads(){
+  await fetch("/clear-leads",{
+    method:"POST"
   });
 
   refreshStatus();
 }
 
-async function addInbox() {
+async function addInbox(){
+  const email = document.getElementById("inboxEmail").value;
+  const password = document.getElementById("inboxPassword").value;
 
-  try {
+  const res = await fetch("/add-inbox",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      email,
+      password
+    })
+  });
 
-    const email = document.getElementById("inboxEmail").value.trim();
-    const password = document.getElementById("inboxPassword").value.trim();
+  const data = await res.json();
 
-    if (!email || !password) {
-      alert("Please enter email and app password");
-      return;
-    }
-
-    const res = await fetch("/add-inbox", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email,
-        password
-      })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      alert(data.message || "Inbox added successfully");
-    } else {
-      alert(data.message || "Failed to add inbox");
-    }
-
-    refreshStatus();
-
-  } catch (err) {
-    console.error(err);
-    alert("Server error while adding inbox");
+  if(data.success){
+    document.getElementById("inboxMsg").innerHTML =
+      `<span class="success">${data.message}</span>`;
+  }else{
+    document.getElementById("inboxMsg").innerHTML =
+      `<span class="error">${data.message}</span>`;
   }
+
+  refreshStatus();
 }
 
-async function clearInboxes() {
-  await fetch("/clear-inboxes", {
-    method: "POST"
+async function clearInboxes(){
+  await fetch("/clear-inboxes",{
+    method:"POST"
   });
 
   refreshStatus();
 }
 
-function saveTemplate() {
+async function removeInbox(index){
+  await fetch("/remove-inbox",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({index})
+  });
+
+  refreshStatus();
+}
+
+async function removeLead(index){
+  await fetch("/remove-lead",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({index})
+  });
+
+  refreshStatus();
+}
+
+function saveTemplate(){
   localStorage.setItem(
-    "email_template",
+    "emailTemplate",
     document.getElementById("template").value
   );
 
   localStorage.setItem(
-    "email_subject",
+    "emailSubject",
     document.getElementById("subject").value
   );
-
-  alert("Saved");
 }
 
-function loadTemplate() {
+function loadTemplate(){
   document.getElementById("template").value =
-    localStorage.getItem("email_template") || "";
+    localStorage.getItem("emailTemplate") || "";
 
   document.getElementById("subject").value =
-    localStorage.getItem("email_subject") || "";
+    localStorage.getItem("emailSubject") || "";
 }
 
-function clearTemplate() {
+function clearTemplate(){
   document.getElementById("template").value = "";
+  document.getElementById("subject").value = "";
+
+  saveTemplate();
 }
 
-async function runSender() {
-  const subject = document.getElementById("subject").value;
-  const template = document.getElementById("template").value;
-  const batch = document.getElementById("batch").value;
+document.getElementById("template")
+  .addEventListener("input",saveTemplate);
 
-  await fetch("/run", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
+document.getElementById("subject")
+  .addEventListener("input",saveTemplate);
+
+async function runEmails(){
+
+  saveTemplate();
+
+  const subject =
+    document.getElementById("subject").value;
+
+  const template =
+    document.getElementById("template").value;
+
+  const batch =
+    document.getElementById("batch").value;
+
+  const res = await fetch("/run",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
     },
-    body: JSON.stringify({
+    body:JSON.stringify({
       subject,
       template,
       batch
     })
   });
 
-  refreshStatus();
+  const data = await res.json();
+
+  alert(data.message);
 }
 
-async function stopSender() {
-  await fetch("/stop", {
-    method: "POST"
+async function stopEmails(){
+  await fetch("/stop",{
+    method:"POST"
   });
 
-  refreshStatus();
+  alert("Stopped");
 }
 
-async function removeLead(index) {
-  await fetch("/remove-lead", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ index })
+async function refreshStatus(){
+
+  const res = await fetch("/status");
+
+  const data = await res.json();
+
+  document.getElementById("status").innerText =
+    `${data.sent}/${data.total}`;
+
+  const inboxList =
+    document.getElementById("inboxList");
+
+  inboxList.innerHTML = "";
+
+  data.inboxes.forEach((inbox,index)=>{
+
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      ${inbox.email} (${inbox.sentToday}/30)
+      <button onclick="removeInbox(${index})">X</button>
+    `;
+
+    inboxList.appendChild(li);
   });
 
-  refreshStatus();
-}
+  const leadList =
+    document.getElementById("leadList");
 
-async function removeInbox(index) {
-  await fetch("/remove-inbox", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ index })
+  leadList.innerHTML = "";
+
+  data.leads.forEach((lead,index)=>{
+
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      ${lead.name} - ${lead.email}
+      <button onclick="removeLead(${index})">X</button>
+    `;
+
+    leadList.appendChild(li);
   });
-
-  refreshStatus();
 }
-
-async function refreshStatus() {
-  try {
-
-    const res = await fetch("/status");
-
-    const data = await res.json();
-
-    document.getElementById("progress").innerText =
-      `${data.sentCount}/${data.total}`;
-
-    const inboxList = document.getElementById("inboxList");
-
-    inboxList.innerHTML = "";
-
-    data.inboxes.forEach((inbox, index) => {
-      const li = document.createElement("li");
-
-      li.innerHTML =
-        `${inbox.email} (${inbox.sentToday})
-        <button type="button" onclick="removeInbox(${index})">X</button>`;
-
-      inboxList.appendChild(li);
-    });
-
-    const leadList = document.getElementById("leadList");
-
-    leadList.innerHTML = "";
-
-    data.leads.slice(0, 10).forEach((lead, index) => {
-      const li = document.createElement("li");
-
-      li.innerHTML =
-        `${lead.name} - ${lead.email}
-        <button type="button" onclick="removeLead(${index})">X</button>`;
-
-      leadList.appendChild(li);
-    });
-
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-setInterval(refreshStatus, 3000);
 
 </script>
 
